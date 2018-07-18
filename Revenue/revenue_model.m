@@ -1,17 +1,20 @@
 
 function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(TECH,object,T_DISCHARGE,POWER,ENERGY,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
     
-% length must be connected to capital cost through pipe and insulation costs'
+    
     caseName = 'CASE' + string(caseNumber);
-    Y   = 24*365/period;                % storage cycles per year
+    Y   = 24*365/period;                           % storage cycles per year
     if TECH == "steam"
-        d_t = T_DISCHARGE/3600;   % hours, discharge time
-        c_t = object.charge_time/3600;      % hours, charge time for SA
+        FileName = 'steam_revenue_input.xls';      % file with inputs
+        d_t = T_DISCHARGE/3600;                    % hrs, discharge time
+        c_t = object.charge_time/3600;             % hrs, charge time for steam
     elseif TECH == "salt"
-        d_t = T_DISCHARGE/3600;   % hours, discharge time
-        c_t = (POWER+7.61232)/(POWER-7.61232)*d_t; % hours, charge time for SA
+        FileName = 'salt_revenue_input.xls';
+        d_t = T_DISCHARGE/3600;                    % hrs, discharge time
+        c_t = (POWER+7.61232)/(POWER-7.61232)*d_t; % hrs, charge time for salt
     else 
         disp('ERROR: Set TECH input to either "steam" or "salt"')
+        return
     end
     
     % Read in data with rows:
@@ -22,7 +25,7 @@ function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(TECH,object,T_DIS
     % (5) cc_e                  (12) coldStart 
     % (6) om_p                  (13) warmStart 
     % (7) om_e                  (14) hotStart
-    data = xlsread('steam_revenue_input.xls');
+    data = xlsread(FileName);
     column = caseNumber+1;
     
     %reference power and energy assigned
