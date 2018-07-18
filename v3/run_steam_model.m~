@@ -65,39 +65,51 @@ warmCyclesPerYear   = 50;         % cycles/year
 hotCyclesPerYear    = 50;         % cycles/year
 var_om              = 8;          % $/MWh,          from Neal
 
-%'designs: divert main steam (MS); preheat feedwater (FW)'
-%'power train: if Pdisch > 0.2Preactor, need additional power train (PT); 
-% if not, can just upgrade exisitng (UG)'
-%'heat sink: if diverting MS and Pchg > 0.5Preactor, need heat sink in 
-% case of issue taking accumulator offline (HS); otherwise (NA)'
-%'case 1: MS, PT, HS'
-%'case 2: MS, UG, HS'
-%'case 3: MS, PT, NA'
-%'case 4: MS, UG, NA'
-%'case 5: FW, PT, NA'
-%'case 6: FW, PT, NA'
+%------------------------------------------------------------------------
+% Set Case Number
+%------------------------------------------------------------------------
+% DESIGNS: 
+% divert main steam (MS)
+% preheat feedwater (FW)
+% POWER TRAIN: 
+% if Pdisch > 0.2Preactor, need additional power train (PT) 
+% if not, can just upgrade exisitng (UG)
+% HEAT SINK: 
+% if diverting MS and Pchg > 0.5Preactor, need heat sink in 
+% case of issue taking accumulator offline (HS); 
+% otherwise (NA)
+% case 1: MS, PT, HS
+% case 2: MS, UG, HS
+% case 3: MS, PT, NA
+% case 4: MS, UG, NA
+% case 5: FW, PT, NA
+% case 6: FW, PT, NA
 caseNumber = 3;
 
-%'runs steam_accumulator_separate code'
-%'run either block 1 or block 2 (comment out the one you aren''t using)'
-%'discharge cycle with net revenue and capital cost calculation'
-%'block 1'
-discharge = 1; 										% 'discharge on'
+%------------------------------------------------------------------------
+% Run steam_model.m
+%------------------------------------------------------------------------
+% Run either block 1 or block 2 (comment out the one you aren't using)
+% Block 1 Discharge cycle with net revenue and capital cost calculation
+discharge = 1; 										% turns discharge on
 ACC = steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);
-ACC.run_accumulator(POWER_SA, pow, discharge); 		% 'discharge'
+ACC.run_accumulator(POWER_SA, pow, discharge); 		% runs discharge
 ACC.charge(P0,X0,VTANK,MDOT_CHARGE,POWER_REDUCTION,POWER_SA,p_topup,h_topup,sgh_input,sgh_output);
 
+% store'
+% block 2'
+% discharge = 0; %discharge off (store)'
+% acc=steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);'
+% acc.run_accumulator(POWER_SA, pow, discharge); %store'
+
+%------------------------------------------------------------------------
+% Run revenue_model.m
+%------------------------------------------------------------------------
+addpath('../../Revenue/')
 [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(ACC,POWER_SA,ENERGY_SA,...
     MAIN_POWER,MIN_LOAD,LTANK,life,interest,period,peakAmplitude,...
         avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
 
-
-%'store'
-%'block 2'
-%'discharge = 0; %discharge off (store)'
-%'acc=steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);'
-%'acc.run_accumulator(POWER_SA, pow, discharge); %store'
-    
 
 %'need to add more plots'
 %acc.plots();

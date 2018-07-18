@@ -1,5 +1,5 @@
 
-function [netRevenue,CC,RC,RD,totalOM,totalCC] = steam_revenue(object,POWER_SA,ENERGY_SA,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
+function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(object,POWER_SA,ENERGY_SA,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
     % length must be connected to capital cost through pipe and insulation costs'
     caseName = 'CASE' + string(caseNumber);
     Y   = 24*365/period;                % storage cycles per year
