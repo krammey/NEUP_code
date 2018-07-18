@@ -1,27 +1,27 @@
 
-function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(object,POWER,ENERGY,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
+function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(TECH,object,T_DISCHARGE,POWER,ENERGY,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
     
 % length must be connected to capital cost through pipe and insulation costs'
     caseName = 'CASE' + string(caseNumber);
     Y   = 24*365/period;                % storage cycles per year
-    d_t = object.discharge_time/3600;   % hours, discharge time
-    c_t = object.charge_time/3600;      % hours, charge time for SA
+    if TECH == "steam"
+        d_t = T_DISCHARGE/3600;   % hours, discharge time
+        c_t = object.charge_time/3600;      % hours, charge time for SA
+    elseif TECH == "salt"
+        d_t = T_DISCHARGE/3600;   % hours, discharge time
+        c_t = (POWER+7.61232)/(POWER-7.61232)*d_t; % hours, charge time for SA
+    else 
+        disp('ERROR: Set TECH input to either "steam" or "salt"')
+    end
     
     % Read in data with rows:
-    % 1 caseNumber
-    % 2 Pref
-    % 3 Eref
-    % 4 cc_p
-    % 5 cc_e
-    % 6 om_p
-    % 7 om_e
-    % 8 cc_p_scale
-    % 9 cc_e_scale 
-    % 10 om_p_scale 
-    % 11 om_e_scale 
-    % 12 coldStart 
-    % 13 warmStart 
-    % 14 hotStart
+    % (1) caseNumber            (8) cc_p_scale
+    % (2) Pref                  (9) cc_e_scale 
+    % (3) Eref                  (10) om_p_scale 
+    % (4) cc_p                  (11) om_e_scale 
+    % (5) cc_e                  (12) coldStart 
+    % (6) om_p                  (13) warmStart 
+    % (7) om_e                  (14) hotStart
     data = xlsread('steam_revenue_input.xls');
     column = caseNumber+1;
     
@@ -77,12 +77,6 @@ function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(object,POWER,ENER
     CC         = totalCC*(interest+(interest/((1+interest)^life-1))); % amortized capital cost
     netRevenue = RD-RC-CC-totalOM; % revenue provided by the addition of the accumulator
     disp(['Net revenue is ' num2str(netRevenue) ' MM$/year'])
-    
-%     disp(["Total overnight CC is 95.2914 MM$" ...
-%     "Fixed O&M is 95.351 $/kw-year" ... %****
-%     "Total O&M is 10.0495 MM$/year" ... %****
-%     "Start cost is 61 $/MW-start" ...
-%     "Net revenue is -582.1025 MM$/year" ... %****
-%     "Total run time = 5.12 seconds."]')
+
 end
 

@@ -1,8 +1,13 @@
+
+% Run this script first
+% To test against old code versions run:
+% run ./v2/run_steam_model
+% run ./v1/RUN_SA_SEPARATE.m
+% run ./v0/RUN_SA_SEPARATE.m
+%===========================================================================================
 clear all
 close all
-% Run this script first
 start_time = tic;
-
 %===========================================================================================
 % Steam Accumulator properties
 %===========================================================================================
@@ -104,7 +109,7 @@ ACC.charge(P0,X0,VTANK,MDOT_CHARGE,POWER_REDUCTION,POWER_SA,p_topup,h_topup,sgh_
 % Run revenue_model.m
 %------------------------------------------------------------------------
 addpath('../../Revenue/')
-[netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(ACC,POWER_SA,ENERGY_SA,...
+[netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model("steam",ACC,T_END,POWER_SA,ENERGY_SA,...
     MAIN_POWER,MIN_LOAD,LTANK,life,interest,period,peakAmplitude,...
         avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
 

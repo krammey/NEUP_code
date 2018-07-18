@@ -279,7 +279,7 @@ classdef steam_model < handle
             object.efficiency_r = discharge_energy_boost/charge_energy_loss;
             
         end
-%         %%
+         %%
 %         %'Kaylas section '
 %         function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue(object,POWER_SA,...
 %                 ENERGY_SA,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
