@@ -281,140 +281,140 @@ classdef steam_model < handle
         end
 %         %%
 %         %'Kaylas section '
-        function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue(object,POWER_SA,...
-                ENERGY_SA,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
-           
-            %'this section mainly determines the charge and discharge time
-            %discharge time is calculated a value input in RUN_SA_SEPARATE
-            %charge time for the SA is calculated with line 276, and charge time for the molten salt is calculated with line 277
-            %comment/uncomment one of the charge time lines depending on which model is being used
-            %length must be connected to capital cost through pipe and insulation costs'
-            Y=(1/period)*24*365; %storage cycles per year
-            d_t = object.discharge_time/3600; %hours, discharge time
-            c_t = object.charge_time/3600; %hours, charge time for SA
-            %c_t = (POWER_SA + 7.61232)/(POWER_SA-7.61232)*d_t; %hours, charge time for salt
-             
-            %case number input in RUN_SA_SEPARATE assinged to local variable. Text file name also assigned
-            %SA text file: SA_cost_input.txt
-            %salt text file: salt_cost_input.txt
-            %change fileName as indicated below
-            caseName = 'CASE' + string(caseNumber);
-            fileName = 'salt_cost_input.txt'; %change file name in otder to test different ones 
-            
-            %this section searches for the case name in each line of the text file
-            %when the case name is found in a line, it assignes all the following text file lines in that case to a MATLAB variable 
-            fileID = fopen(fileName);
-                while ~feof(fileID)
-                    tline = fgetl(fileID);
-                    if contains(tline, caseName) 
-                        %caseLine = tline;
-                        powerEnergyLine = fgetl(fileID);
-                        costLine = fgetl(fileID);
-                        scaleFactorLine = fgetl(fileID);
-                        startCostLine = fgetl(fileID);
-                    end
-                end
-                fclose(fileID);
-            
-           
-            %in the following sections (lines 307-328), the lines assigned above are parsed to find numerical values of interest (power/energy costs, scale factors, etc)
-            %numerical values are put into an array 
-            %NOTE: the spaces before the units (like in line 307) are exact (based on the spaces in the text file -- dont change)
-                
-            %divide power energy line into array of doubles
-            powerEnergyLine2 = extractBefore(powerEnergyLine, '     % MW MWh');
-            powerEnergySpaces = regexp(powerEnergyLine2, ' ');
-            powerEnergyStringArray = [string(extractBefore(powerEnergyLine2, powerEnergySpaces(1))) string(extractAfter(powerEnergyLine2, powerEnergySpaces(1)))];
-            powerEnergyDoubleArray = str2double(powerEnergyStringArray);   
-            
-            %divide cost line into array of doubles
-            costLine2 = extractBefore(costLine,'   MM$ MM$ MM$/yr MM$/yr');
-            costSpaces = regexp(costLine2, ' ');
-            costStringArray = [extractBefore(costLine2, costSpaces(1))... 
-                extractBetween(costLine2, costSpaces(1)+1, costSpaces(2)-1)... 
-                extractBetween(costLine2, costSpaces(2)+1, costSpaces(3)-1)... 
-                extractAfter(costLine2, costSpaces(3))];
-            costDoubleArray = str2double(costStringArray);    
-            
-            %divide scale factor line into array of doubles
-            scaleFactorLine2 = extractBefore(scaleFactorLine,'		    % % % %');   
-            scaleFactorSpaces = regexp(scaleFactorLine2, ' ');
-            scaleFactorStringArray = [extractBefore(scaleFactorLine2,... 
-                scaleFactorSpaces(1)) extractBetween(scaleFactorLine2,... 
-                scaleFactorSpaces(1)+1, scaleFactorSpaces(2)-1) extractBetween(scaleFactorLine2,... 
-                scaleFactorSpaces(2)+1, scaleFactorSpaces(3)-1) extractAfter(scaleFactorLine2, scaleFactorSpaces(3))];
-            scaleFactorDoubleArray = str2double(scaleFactorStringArray);
-            
-            %divide start cost line into array of doubles
-            startCostLine2 = extractBefore(startCostLine, '      $/MW-Cycle');
-            startCostSpaces = regexp(startCostLine2, ' ');
-            startCostStringArray = [extractBefore(startCostLine2, startCostSpaces(1))... 
-                extractBetween(startCostLine2, startCostSpaces(1)+1, startCostSpaces(2)-1) extractAfter(startCostLine2, startCostSpaces(2))];
-            startCostDoubleArray = str2double(startCostStringArray);
-            
-            
-            %in these sections (lines 334-358), values from the above arrays are assigned to individual variables
-       
-            %reference power and energy assigned
-            Pref = powerEnergyDoubleArray(1); %reference power
-            Eref = powerEnergyDoubleArray(2); %reference energy
-            
-            %power/energy cost and OM assigned 
-            Cp = costDoubleArray(1); %cost (power)
-            Ce = costDoubleArray(2); %cost (energy)
-            Op = costDoubleArray(3); %OM (power)
-            Oe = costDoubleArray(4); %OM (energy)
-            
-            %scale factors assigned for power/energy cost and OM 
-            n_Cp = scaleFactorDoubleArray(1); %scaleFactor cost (power)
-            n_Ce = scaleFactorDoubleArray(2); %scaleFactor cost (energy)
-            n_Op = scaleFactorDoubleArray(3); %scaleFactor OM (power)
-            n_Oe = scaleFactorDoubleArray(4); %scaleFactor cost (energy)
-            
-            %Cp Ce Op Oe scaled and assinged 
-            Cp_scaled = Cp * (POWER_SA/Pref)^n_Cp;  %cost scaled (power)
-            Ce_scaled = Ce * (ENERGY_SA/Eref)^n_Ce; %cost scaled (energy)
-            Op_scaled = Op * (POWER_SA/Pref)^n_Op;  %OM scaled (power)
-            Oe_scaled = Oe * (ENERGY_SA/Eref)^n_Oe; %OM sclaed (energy)
-         
-            %cycles OM calcaulated 
-            coldStart   = startCostDoubleArray(1); %$/MW-Cycle
-            warmStart   = startCostDoubleArray(2); %$/MW-Cycle
-            hotStart    = startCostDoubleArray(3); %$/MW-Cycle
-            cyclingCost = ((coldStart * coldCyclesPerYear + warmStart * warmCyclesPerYear + hotStart * hotCyclesPerYear) * POWER_SA)/1000000; %MM$/year
-            
-            %calculations to determine ADC, ACP, DP
-            c1   = (3/4)*period-c_t/2;  %hr, charge time integral lower bound
-            c2   = (3/4)*period+c_t/2;  %hr, charge time integral upper bound
-            d1   = (period/4)-d_t/2;    %hr, discharge time integral lower bound
-            d2   = (period/4)+d_t/2;    %hr, discharge time integral upper bound
-            y    = @(t)peakAmplitude*sin((2*pi()*t)/period)+avgElecPrice; 
-            intC = integral(y,c1,c2);   %$/MW
-            intD = integral(y,d1,d2);   %$/MW
-            ADP  = intD/(d2-d1);        %$/MWh, Average discharge price
-            ACP  = intC/(c2-c1);        %$/MWh, Average charge price
-            %DP   = ADP-ACP ;            %$/MWh, delta price
-  
-            % Final costs/revenues caluclated and displayed (These need to
-            % be updated to account for ramping.)
-            totalCC = Cp_scaled+Ce_scaled;
-            disp(['Total overnight CC is ' num2str(totalCC) ' MM$'])
-            
-            fixed_om = (Oe_scaled+Op_scaled)*(10^6)*(1/POWER_SA)*(1/1000);
-            disp(['Fixed O&M is ' num2str(fixed_om) ' $/kw-year'])
-            
-            totalOM = Op_scaled + Oe_scaled + cyclingCost + var_om *ENERGY_SA*Y/1000000;
-            disp(['Total O&M is ' num2str(totalOM) ' MM$/year'])
-            
-            startCost = cyclingCost*1000000/(POWER_SA*(hotCyclesPerYear+warmCyclesPerYear+coldCyclesPerYear));
-            disp(['Start cost is ' num2str(startCost) ' $/MW-start'])
-            
-            RC         = ACP*c_t*Y*(MAIN_POWER-MIN_LOAD)/10^6;                % forgone revenue from charging
-            RD         = ADP*d_t*Y*POWER_SA/10^6;                             % forgone revenue from discharging
-            CC         = totalCC*(interest+(interest/((1+interest)^life-1))); % amortized capital cost
-            netRevenue = RD-RC-CC-totalOM; % revenue provided by the addition of the accumulator
-            disp(['Net revenue is ' num2str(netRevenue) ' MM$/year'])
-        end
+%         function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue(object,POWER_SA,...
+%                 ENERGY_SA,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
+%            
+%             %'this section mainly determines the charge and discharge time
+%             %discharge time is calculated a value input in RUN_SA_SEPARATE
+%             %charge time for the SA is calculated with line 276, and charge time for the molten salt is calculated with line 277
+%             %comment/uncomment one of the charge time lines depending on which model is being used
+%             %length must be connected to capital cost through pipe and insulation costs'
+%             Y=(1/period)*24*365; %storage cycles per year
+%             d_t = object.discharge_time/3600; %hours, discharge time
+%             c_t = object.charge_time/3600; %hours, charge time for SA
+%             %c_t = (POWER_SA + 7.61232)/(POWER_SA-7.61232)*d_t; %hours, charge time for salt
+%              
+%             %case number input in RUN_SA_SEPARATE assinged to local variable. Text file name also assigned
+%             %SA text file: SA_cost_input.txt
+%             %salt text file: salt_cost_input.txt
+%             %change fileName as indicated below
+%             caseName = 'CASE' + string(caseNumber);
+%             fileName = 'SA_cost_input.txt'; %change file name in otder to test different ones 
+%             
+%             %this section searches for the case name in each line of the text file
+%             %when the case name is found in a line, it assignes all the following text file lines in that case to a MATLAB variable 
+%             fileID = fopen(fileName);
+%                 while ~feof(fileID)
+%                     tline = fgetl(fileID);
+%                     if contains(tline, caseName) 
+%                         %caseLine = tline;
+%                         powerEnergyLine = fgetl(fileID);
+%                         costLine = fgetl(fileID);
+%                         scaleFactorLine = fgetl(fileID);
+%                         startCostLine = fgetl(fileID);
+%                     end
+%                 end
+%                 fclose(fileID);
+%             
+%            
+%             %in the following sections (lines 307-328), the lines assigned above are parsed to find numerical values of interest (power/energy costs, scale factors, etc)
+%             %numerical values are put into an array 
+%             %NOTE: the spaces before the units (like in line 307) are exact (based on the spaces in the text file -- dont change)
+%                 
+%             %divide power energy line into array of doubles
+%             powerEnergyLine2 = extractBefore(powerEnergyLine, '     % MW MWh');
+%             powerEnergySpaces = regexp(powerEnergyLine2, ' ');
+%             powerEnergyStringArray = [string(extractBefore(powerEnergyLine2, powerEnergySpaces(1))) string(extractAfter(powerEnergyLine2, powerEnergySpaces(1)))];
+%             powerEnergyDoubleArray = str2double(powerEnergyStringArray);   
+%             
+%             %divide cost line into array of doubles
+%             costLine2 = extractBefore(costLine,'   MM$ MM$ MM$/yr MM$/yr');
+%             costSpaces = regexp(costLine2, ' ');
+%             costStringArray = [extractBefore(costLine2, costSpaces(1))... 
+%                 extractBetween(costLine2, costSpaces(1)+1, costSpaces(2)-1)... 
+%                 extractBetween(costLine2, costSpaces(2)+1, costSpaces(3)-1)... 
+%                 extractAfter(costLine2, costSpaces(3))];
+%             costDoubleArray = str2double(costStringArray);    
+%             
+%             %divide scale factor line into array of doubles
+%             scaleFactorLine2 = extractBefore(scaleFactorLine,'		    % % % %');   
+%             scaleFactorSpaces = regexp(scaleFactorLine2, ' ');
+%             scaleFactorStringArray = [extractBefore(scaleFactorLine2,... 
+%                 scaleFactorSpaces(1)) extractBetween(scaleFactorLine2,... 
+%                 scaleFactorSpaces(1)+1, scaleFactorSpaces(2)-1) extractBetween(scaleFactorLine2,... 
+%                 scaleFactorSpaces(2)+1, scaleFactorSpaces(3)-1) extractAfter(scaleFactorLine2, scaleFactorSpaces(3))];
+%             scaleFactorDoubleArray = str2double(scaleFactorStringArray);
+%             
+%             %divide start cost line into array of doubles
+%             startCostLine2 = extractBefore(startCostLine, '      $/MW-Cycle');
+%             startCostSpaces = regexp(startCostLine2, ' ');
+%             startCostStringArray = [extractBefore(startCostLine2, startCostSpaces(1))... 
+%                 extractBetween(startCostLine2, startCostSpaces(1)+1, startCostSpaces(2)-1) extractAfter(startCostLine2, startCostSpaces(2))];
+%             startCostDoubleArray = str2double(startCostStringArray);
+%             
+%             
+%             %in these sections (lines 334-358), values from the above arrays are assigned to individual variables
+%        
+%             %reference power and energy assigned
+%             Pref = powerEnergyDoubleArray(1); %reference power
+%             Eref = powerEnergyDoubleArray(2); %reference energy
+%             
+%             %power/energy cost and OM assigned 
+%             Cp = costDoubleArray(1); %cost (power)
+%             Ce = costDoubleArray(2); %cost (energy)
+%             Op = costDoubleArray(3); %OM (power)
+%             Oe = costDoubleArray(4); %OM (energy)
+%             
+%             %scale factors assigned for power/energy cost and OM 
+%             n_Cp = scaleFactorDoubleArray(1); %scaleFactor cost (power)
+%             n_Ce = scaleFactorDoubleArray(2); %scaleFactor cost (energy)
+%             n_Op = scaleFactorDoubleArray(3); %scaleFactor OM (power)
+%             n_Oe = scaleFactorDoubleArray(4); %scaleFactor cost (energy)
+%             
+%             %Cp Ce Op Oe scaled and assinged 
+%             Cp_scaled = Cp * (POWER_SA/Pref)^n_Cp;  %cost scaled (power)
+%             Ce_scaled = Ce * (ENERGY_SA/Eref)^n_Ce; %cost scaled (energy)
+%             Op_scaled = Op * (POWER_SA/Pref)^n_Op;  %OM scaled (power)
+%             Oe_scaled = Oe * (ENERGY_SA/Eref)^n_Oe; %OM sclaed (energy)
+%          
+%             %cycles OM calcaulated 
+%             coldStart   = startCostDoubleArray(1); %$/MW-Cycle
+%             warmStart   = startCostDoubleArray(2); %$/MW-Cycle
+%             hotStart    = startCostDoubleArray(3); %$/MW-Cycle
+%             cyclingCost = ((coldStart * coldCyclesPerYear + warmStart * warmCyclesPerYear + hotStart * hotCyclesPerYear) * POWER_SA)/1000000; %MM$/year
+%             
+%             %calculations to determine ADC, ACP, DP
+%             c1   = (3/4)*period-c_t/2;  %hr, charge time integral lower bound
+%             c2   = (3/4)*period+c_t/2;  %hr, charge time integral upper bound
+%             d1   = (period/4)-d_t/2;    %hr, discharge time integral lower bound
+%             d2   = (period/4)+d_t/2;    %hr, discharge time integral upper bound
+%             y    = @(t)peakAmplitude*sin((2*pi()*t)/period)+avgElecPrice; 
+%             intC = integral(y,c1,c2);   %$/MW
+%             intD = integral(y,d1,d2);   %$/MW
+%             ADP  = intD/(d2-d1);        %$/MWh, Average discharge price
+%             ACP  = intC/(c2-c1);        %$/MWh, Average charge price
+%             %DP   = ADP-ACP ;            %$/MWh, delta price
+%   
+%             % Final costs/revenues caluclated and displayed (These need to
+%             % be updated to account for ramping.)
+%             totalCC = Cp_scaled+Ce_scaled;
+%             disp(['Total overnight CC is ' num2str(totalCC) ' MM$'])
+%             
+%             fixed_om = (Oe_scaled+Op_scaled)*(10^6)*(1/POWER_SA)*(1/1000);
+%             disp(['Fixed O&M is ' num2str(fixed_om) ' $/kw-year'])
+%             
+%             totalOM = Op_scaled + Oe_scaled + cyclingCost + var_om *ENERGY_SA*Y/1000000;
+%             disp(['Total O&M is ' num2str(totalOM) ' MM$/year'])
+%             
+%             startCost = cyclingCost*1000000/(POWER_SA*(hotCyclesPerYear+warmCyclesPerYear+coldCyclesPerYear));
+%             disp(['Start cost is ' num2str(startCost) ' $/MW-start'])
+%             
+%             RC         = ACP*c_t*Y*(MAIN_POWER-MIN_LOAD)/10^6;                % forgone revenue from charging
+%             RD         = ADP*d_t*Y*POWER_SA/10^6;                             % forgone revenue from discharging
+%             CC         = totalCC*(interest+(interest/((1+interest)^life-1))); % amortized capital cost
+%             netRevenue = RD-RC-CC-totalOM; % revenue provided by the addition of the accumulator
+%             disp(['Net revenue is ' num2str(netRevenue) ' MM$/year'])
+%         end
         %%
         function object = plots(object)
             figure (1)
