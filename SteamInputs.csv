@@ -1,0 +1,22 @@
+﻿,Salt Economic Model Inputs,,,,,
+Symbol,Item,Value,Units,Scale Exp,Reference,Notes
+POWER_SA,Power,50,MW,,,
+,Storage time,7.5,hr,,,
+,storage tanks,6.6,M USD/350 MWh(t),,IRENA,"energy dependent, relevant to steam accum. w nuclear"
+,insulation materials,0.7,M USD/350 MWh(t),,IRENA,"energy dependent, relevant to steam accum. w nuclear"
+,foundations,2.3,M USD/350 MWh(t),0.7,IRENA,"energy dependent, relevant to steam accum. w nuclear"
+,DELETE? heat exchanger & pumps,30,M USD/1750 MWh(t),0.8,SAM,Scale factor is an input in SAM. Equiv. to 6 M USD/350MWh(t). Power dependent?
+,DELETE? pumps,1.6,M USD/350 MWh(t),0.7,IRENA,DELETE?
+,balance of system,3.5,M USD/350 MWh(t),0.7,IRENA,"energy dependent, relevant to steam accum. w nuclear"
+,Conventional Plant Components and plant system,52,M USD/350 MWh(t),,IRENA,NOT USED?
+,Power block,20.8,M USD/50 MW,,IRENA,"power dependent, relevant to steam accum. w nuclear"
+,Balance of plant,20.7,M USD/350 MWh(t),,IRENA,relevant to steam accum. w nuclear
+,,,,,,
+,total costs relevant to steam accum. w nuclear,56.2,M USD/350 MWh(t),,IRENA,
+,energy dependent costs,14.7,M USD/350 MWh(t),,IRENA,NOT USED?
+,power dependent costs,20.8,M USD/350 MWh(t),,IRENA,
+,"total relevant costs for portioning balance of plant""otal relevant cos""""""otal relevant costs """,65.26,M USD/350 MWh(t),,IRENA,
+,,,,,,
+,,,,,,
+,,,,,,
+,NOT SURE WHAT TO DO WITH BALANCE OF PLANT,,,,,

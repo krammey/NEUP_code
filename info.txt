@@ -1,0 +1,673 @@
+1c1,2
+< classdef steam_accumulator_separate < handle
+---
+> classdef steam_model < handle
+>     
+76a78
+>     
+84a87
+>     %%
+86,93c89,97
+<         function object = steam_accumulator_separate(T_DISCHARGE,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge)
+<             object.i=1;
+<             object.time_step=DT;
+<             object.discharge_time=T_DISCHARGE;
+<             object.ramp_time=T_RAMP;
+<             object.store_time=T_STORE;
+<             object.length = LTANK;
+<             object.radius = RTANK;
+---
+>         %%
+>         function object = steam_model(T_DISCHARGE,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge)
+>             object.i                = 1;
+>             object.time_step        = DT;
+>             object.discharge_time   = T_DISCHARGE;
+>             object.ramp_time        = T_RAMP;
+>             object.store_time       = T_STORE;
+>             object.length           = LTANK;
+>             object.radius           = RTANK;
+96a101
+>         %%
+98,99c103,104
+<             object.VAP_IN = 0; %during discharge 
+<             object.LIQ_IN = 0;
+---
+>             object.VAP_IN  = 0; %during discharge 
+>             object.LIQ_IN  = 0;
+107c112
+<             [object.VAP_OUT(object.i), object.thermo_eff(object.i)]=rankine(object, pow(object.i), object.p(object.i));
+---
+>             [object.VAP_OUT(object.i), object.thermo_eff(object.i)] = rankine(object, pow(object.i), object.p(object.i));
+109c114
+<                 object.VAP_OUT(object.i)=0; %'sets mass flow rate to zero during storage'
+---
+>                 object.VAP_OUT(object.i) = 0; %'sets mass flow rate to zero during storage'
+112,120c117,123
+<                 object.m1b(object.i)=object.LIQ_IN-object.LIQ_OUT; %kg/s
+<                 object.m2b(object.i)=object.VAP_IN-object.VAP_OUT(object.i); %kg/s
+<                 object.mh1b(object.i)=object.LIQ_IN*object.HLIQ_IN-object.LIQ_OUT*object.h1(object.i); %kW
+<                 object.mh2b(object.i)=object.VAP_IN*object.HVAP_IN-object.VAP_OUT(object.i)*object.h2(object.i); %kW
+< 
+<                 object.hL_sat = XSteam('hL_p',object.p(object.i)); %saturated liquid enthalpy (kJ/kg)
+<                 object.hV_sat = XSteam('hV_p',object.p(object.i)); %saturated vapor enthalpy (kJ/kg)
+< 
+<                 object.r = object.hV_sat - object.hL_sat;     % latent heat of vaporization
+---
+>                 object.m1b(object.i)  =object.LIQ_IN-object.LIQ_OUT;           % kg/s
+>                 object.m2b(object.i)  =object.VAP_IN-object.VAP_OUT(object.i); % kg/s
+>                 object.mh1b(object.i) =object.LIQ_IN*object.HLIQ_IN-object.LIQ_OUT*object.h1(object.i); % kW
+>                 object.mh2b(object.i) =object.VAP_IN*object.HVAP_IN-object.VAP_OUT(object.i)*object.h2(object.i); % kW
+>                 object.hL_sat         = XSteam('hL_p',object.p(object.i));     % saturated liquid enthalpy (kJ/kg)
+>                 object.hV_sat         = XSteam('hV_p',object.p(object.i));     % saturated vapor enthalpy (kJ/kg)
+>                 object.r              = object.hV_sat - object.hL_sat;         % latent heat of vaporization
+129,130c132,137
+<                 object.Area_int(object.i+1) = 2*object.radius*cos(asin(((object.Vol1(object.i)/object.Vol_total(object.i))-object.radius)/object.radius))*object.length; %Minimum Interface Area between the two phases[m^2/m^3]
+<                 object.Qint(object.i+1) =((object.Coeff_int*object.Area_int(object.i+1))*(object.t2(object.i)-object.t1(object.i))*object.Vol1(object.i))/1000; %kW, Rate of interphase heat transfer from vapor to liquid [kW]
+---
+>                 object.Area_int(object.i+1) = 2*object.radius*...
+>                     cos(asin(((object.Vol1(object.i)/object.Vol_total(object.i))...
+>                     -object.radius)/object.radius))*object.length; %Minimum Interface Area between the two phases[m^2/m^3]
+>                 object.Qint(object.i+1) = ((object.Coeff_int*...
+>                     object.Area_int(object.i+1))*(object.t2(object.i)...
+>                     -object.t1(object.i))*object.Vol1(object.i))/1000; %kW, Rate of interphase heat transfer from vapor to liquid [kW]
+133,141c140,158
+<                 object.mpt1(object.i)=object.mc-object.me(object.i); %kg/s, liquid mass change due to evaporation and condensation
+<                 object.mpt2(object.i)=object.me(object.i)-object.mc; %kg/s, vapor mass change due to evaporation and condensation
+<                 object.m1(object.i+1)=object.m1(object.i)+(object.m1b(object.i)+object.mpt1(object.i))*object.time_step; %liquid mass balance (kg)
+<                 object.m2(object.i+1)=object.m2(object.i)+(object.m2b(object.i)+object.mpt2(object.i))*object.time_step; %vapor mass balance (kg)
+< 
+<                 object.dv1dh(object.i)=(XSteam('v_ph',object.p(object.i),object.h1(object.i)+object.Dh)-XSteam('v_ph',object.p(object.i),object.h1(object.i)))/object.Dh; % (m3/kJ), change in v1 per change in h at constant p
+<                 object.dv2dh(object.i)=(XSteam('v_ph',object.p(object.i),object.h2(object.i)+object.Dh)-XSteam('v_ph',object.p(object.i),object.h2(object.i)))/object.Dh; % (m3/kJ)
+<                 object.dv1dp(object.i)=(XSteam('v_ph',object.p(object.i)+object.Dp,object.h1(object.i))-XSteam('v_ph',object.p(object.i),object.h1(object.i)))/(object.Dp*object.PASCALS_PER_BAR); %(m5/(N*kg)) change in v1 per change in p at constant h
+<                 object.dv2dp(object.i)=(XSteam('v_ph',object.p(object.i)+object.Dp,object.h2(object.i))-XSteam('v_ph',object.p(object.i),object.h2(object.i)))/(object.Dp*object.PASCALS_PER_BAR);
+---
+>                 object.mpt1(object.i) = object.mc-object.me(object.i); %kg/s, liquid mass change due to evaporation and condensation
+>                 object.mpt2(object.i) = object.me(object.i)-object.mc; %kg/s, vapor mass change due to evaporation and condensation
+>                 object.m1(object.i+1) = object.m1(object.i)+(object.m1b(object.i)...
+>                     +object.mpt1(object.i))*object.time_step; %liquid mass balance (kg)
+>                 object.m2(object.i+1) = object.m2(object.i)+(object.m2b(object.i)...
+>                     +object.mpt2(object.i))*object.time_step; %vapor mass balance (kg)
+> 
+>                 object.dv1dh(object.i) = (XSteam('v_ph',object.p(object.i),...
+>                     object.h1(object.i)+object.Dh)-XSteam('v_ph',object.p(object.i),...
+>                     object.h1(object.i)))/object.Dh; % (m3/kJ), change in v1 per change in h at constant p
+>                 object.dv2dh(object.i) = (XSteam('v_ph',object.p(object.i),...
+>                     object.h2(object.i)+object.Dh)-XSteam('v_ph',object.p(object.i),...
+>                     object.h2(object.i)))/object.Dh; % (m3/kJ)
+>                 object.dv1dp(object.i) = (XSteam('v_ph',object.p(object.i)...
+>                     +object.Dp,object.h1(object.i))-XSteam('v_ph',object.p(object.i),...
+>                     object.h1(object.i)))/(object.Dp*object.PASCALS_PER_BAR); %(m5/(N*kg)) change in v1 per change in p at constant h
+>                 object.dv2dp(object.i) = (XSteam('v_ph',object.p(object.i)+...
+>                     object.Dp,object.h2(object.i))-XSteam('v_ph',object.p(object.i),...
+>                     object.h2(object.i)))/(object.Dp*object.PASCALS_PER_BAR);
+150,166c167,194
+<                 %% final values at end of disch are here
+<                 object.p(object.i+1) = ((object.time_step*((term1+term2-term3-term4)/(term5+term6)))/object.PASCALS_PER_BAR)+object.p(object.i); %bar
+<                 object.h1(object.i+1) = (object.mh1b(object.i)+object.mpt1(object.i)*object.hV_sat+(object.Vol1(object.i)/object.time_step)*object.PASCALS_PER_BAR*(object.p(object.i+1)-object.p(object.i))*.001-(object.h1(object.i)/object.time_step)*(object.m1(object.i+1)-object.m1(object.i)))*(object.time_step/object.m1(object.i))+object.h1(object.i)+object.Qint(object.i)*(object.time_step/object.m1(object.i)); %kJ/kg
+<                 object.h2(object.i+1) = (object.mh2b(object.i)+object.mpt2(object.i)*object.hV_sat+(object.Vol2(object.i)/object.time_step)*object.PASCALS_PER_BAR*(object.p(object.i+1)-object.p(object.i))*.001-(object.h2(object.i)/object.time_step)*(object.m2(object.i+1)-object.m2(object.i)))*(object.time_step/object.m2(object.i))+object.h2(object.i)-object.Qint(object.i)*(object.time_step/object.m1(object.i)); %kJ/kg
+<                 object.t1(object.i+1) = XSteam('T_ph',object.p(object.i+1),object.h1(object.i+1));
+<                 object.t2(object.i+1) = XSteam('T_ph',object.p(object.i+1),object.h2(object.i+1));
+<                 object.rho1(object.i+1) = XSteam('rho_ph',object.p(object.i+1),object.h1(object.i+1));
+<                 object.rho2(object.i+1) = XSteam('rho_ph',object.p(object.i+1),object.h2(object.i+1));
+<                 object.Vol1(object.i+1) = object.m1(object.i+1)/object.rho1(object.i+1);
+<                 object.Vol2(object.i+1) = object.m2(object.i+1)/object.rho2(object.i+1); 
+<                 object.Vol_total(object.i+1)=object.Vol1(object.i+1)+object.Vol2(object.i+1); 
+<                 object.v1(object.i+1) = 1/object.rho1(object.i+1);
+<                 object.v2(object.i+1) = 1/object.rho2(object.i+1);
+<                 object.x(object.i+1) = object.m2(object.i+1)/(object.m1(object.i+1)+object.m2(object.i+1));
+<                 object.QLOSS(object.i+1) = object.length*Q_loss(object,(object.t1(object.i+1)+object.t2(object.i+1))/2); %kW
+<                 object.qloss1(object.i+1)=(object.Vol1(object.i+1)/(object.Vol1(object.i+1)+object.Vol2(object.i+1)))*object.QLOSS(object.i+1); %(kW)
+<                 object.qloss2(object.i+1)=(object.Vol2(object.i+1)/(object.Vol1(object.i+1)+object.Vol2(object.i+1)))*object.QLOSS(object.i+1); %(kW)
+---
+>                 % final values at end of disch are here
+>                 object.p(object.i+1)         = ((object.time_step*((term1+term2-term3-term4)...
+>                     /(term5+term6)))/object.PASCALS_PER_BAR)+object.p(object.i); %bar
+>                 object.h1(object.i+1)        = (object.mh1b(object.i)+object.mpt1(object.i)...
+>                     *object.hV_sat+(object.Vol1(object.i)/object.time_step)*...
+>                     object.PASCALS_PER_BAR*(object.p(object.i+1)-object.p(object.i))...
+>                     *.001-(object.h1(object.i)/object.time_step)*(object.m1(object.i+1)...
+>                     -object.m1(object.i)))*(object.time_step/object.m1(object.i))...
+>                     +object.h1(object.i)+object.Qint(object.i)*(object.time_step/object.m1(object.i)); %kJ/kg
+>                 object.h2(object.i+1)        = (object.mh2b(object.i)+object.mpt2(object.i)...
+>                     *object.hV_sat+(object.Vol2(object.i)/object.time_step)*...
+>                     object.PASCALS_PER_BAR*(object.p(object.i+1)-object.p(object.i))...
+>                     *.001-(object.h2(object.i)/object.time_step)*(object.m2(object.i+1)...
+>                     -object.m2(object.i)))*(object.time_step/object.m2(object.i))+...
+>                     object.h2(object.i)-object.Qint(object.i)*(object.time_step/object.m1(object.i)); %kJ/kg
+>                 object.t1(object.i+1)        = XSteam('T_ph',object.p(object.i+1),object.h1(object.i+1));
+>                 object.t2(object.i+1)        = XSteam('T_ph',object.p(object.i+1),object.h2(object.i+1));
+>                 object.rho1(object.i+1)      = XSteam('rho_ph',object.p(object.i+1),object.h1(object.i+1));
+>                 object.rho2(object.i+1)      = XSteam('rho_ph',object.p(object.i+1),object.h2(object.i+1));
+>                 object.Vol1(object.i+1)      = object.m1(object.i+1)/object.rho1(object.i+1);
+>                 object.Vol2(object.i+1)      = object.m2(object.i+1)/object.rho2(object.i+1); 
+>                 object.Vol_total(object.i+1) = object.Vol1(object.i+1)+object.Vol2(object.i+1); 
+>                 object.v1(object.i+1)        = 1/object.rho1(object.i+1);
+>                 object.v2(object.i+1)        = 1/object.rho2(object.i+1);
+>                 object.x(object.i+1)         = object.m2(object.i+1)/(object.m1(object.i+1)+object.m2(object.i+1));
+>                 object.QLOSS(object.i+1)     = object.length*Q_loss(object,(object.t1(object.i+1)+object.t2(object.i+1))/2); %kW
+>                 object.qloss1(object.i+1)    = (object.Vol1(object.i+1)/(object.Vol1(object.i+1)+object.Vol2(object.i+1)))*object.QLOSS(object.i+1); %(kW)
+>                 object.qloss2(object.i+1)    = (object.Vol2(object.i+1)/(object.Vol1(object.i+1)+object.Vol2(object.i+1)))*object.QLOSS(object.i+1); %(kW)
+185c213
+<             for count=1:length(object.QLOSS)
+---
+>             for count=1:size(object.QLOSS,1)
+195c223
+<                 object.PERCENT_LOSS_STORE = (object.ENERGY_LOSS_STORE/object.HH_initial)*100 %percent loss during storage due to heat loss
+---
+>                 object.PERCENT_LOSS_STORE = (object.ENERGY_LOSS_STORE/object.HH_initial)*100; %percent loss during storage due to heat loss
+201c229,230
+<         %% charging block
+---
+>         %%
+>         %%%%%charging block
+203,227c232,249
+<             
+<             P_INITIAL = object.P_disch_final; % bar, final value after discharge
+<             P_END = P0; %bar
+<             m_target = object.m_total;  % mass of full accumulator
+< 
+<             X_INITIAL = object.X_disch_final; % initial vapor quality (mass fraction) 
+<             X_END = X0; % final target vapor quality
+<             rho1_INITIAL=XSteam('rhoL_p',P_INITIAL); %kg/m3
+<             rho2_INITIAL=XSteam('rhoV_p',P_INITIAL); %kg/m3
+<             t1_INITIAL=XSteam('Tsat_p',P_INITIAL);
+<             t2_INITIAL=t1_INITIAL;
+< 
+<             mixture_rho=1./(X_INITIAL/rho2_INITIAL+(1.-X_INITIAL)/rho1_INITIAL);
+<             mass_total=mixture_rho*VTANK; %total mass in tank
+< 
+<             m1_INITIAL = mass_total*(1-X_INITIAL); %total liquid mass in tank (kg)
+<             m2_INITIAL = mass_total*X_INITIAL; %total vapor mass in tank (kg)
+< 
+<             v1_INITIAL=1/rho1_INITIAL; %liquid specific volume in tank (m3/kg)
+<             v2_INITIAL=1/rho2_INITIAL; %vapor specific volume in tank (m3/kg)
+<             h1_INITIAL = XSteam('h_pT',P_INITIAL,t1_INITIAL-object.EPSILON); %(kj/kg)
+<             h2_INITIAL = XSteam('h_pT',P_INITIAL,t2_INITIAL+object.EPSILON);
+< 
+< 
+<             %% mix masses to find accum starting point, taking makeup mass from LP turbine discharge
+---
+>            
+>             P_INITIAL    = object.P_disch_final; % bar, final value after discharge
+>             P_END        = P0; %bar
+>             m_target     = object.m_total;  % mass of full accumulator
+>             X_INITIAL    = object.X_disch_final; % initial vapor quality (mass fraction) 
+>             X_END        = X0; % final target vapor quality
+>             rho1_INITIAL = XSteam('rhoL_p',P_INITIAL); %kg/m3
+>             rho2_INITIAL = XSteam('rhoV_p',P_INITIAL); %kg/m3
+>             t1_INITIAL   = XSteam('Tsat_p',P_INITIAL);
+>             t2_INITIAL   = t1_INITIAL;
+>             mixed_rho    = 1./(X_INITIAL/rho2_INITIAL+(1.-X_INITIAL)/rho1_INITIAL);
+>             mass_total   = mixed_rho*VTANK; %total mass in tank
+>             m1_INITIAL   = mass_total*(1-X_INITIAL); %total liquid mass in tank (kg)
+>             m2_INITIAL   = mass_total*X_INITIAL; %total vapor mass in tank (kg)
+>             v1_INITIAL   = 1/rho1_INITIAL; %liquid specific volume in tank (m3/kg)
+>             v2_INITIAL   = 1/rho2_INITIAL; %vapor specific volume in tank (m3/kg)
+>             h1_INITIAL   = XSteam('h_pT',P_INITIAL,t1_INITIAL-object.EPSILON); %(kj/kg)
+>             h2_INITIAL   = XSteam('h_pT',P_INITIAL,t2_INITIAL+object.EPSILON);
+228a251
+>             % mix masses to find accum starting point, taking makeup mass from LP turbine discharge
+232d254
+< 
+235,240c257,261
+<             t_final = XSteam('Tsat_p',P_END); %C, final temp after charging
+<             h1_final = XSteam('hL_p',P_END); %kj/kg
+<             h2_final = XSteam('hV_p',P_END); %kJ/kg
+<             v1_final = XSteam('vL_p',P_END); %m^3/kg
+<             v2_final = XSteam('vV_p',P_END); %m^3/kg
+< 
+---
+>             t_final   = XSteam('Tsat_p',P_END); %C, final temp after charging
+>             h1_final  = XSteam('hL_p',P_END); %kj/kg
+>             h2_final  = XSteam('hV_p',P_END); %kJ/kg
+>             v1_final  = XSteam('vL_p',P_END); %m^3/kg
+>             v2_final  = XSteam('vV_p',P_END); %m^3/kg
+243c264
+<             HH_final = HH1_final+HH2_final; % kJ, total enthalpy of fully recharged accumulator(our target)
+---
+>             HH_final  = HH1_final+HH2_final; % kJ, total enthalpy of fully recharged accumulator(our target)
+247,251c268,270
+< 
+<             pV_initial = (m1_INITIAL+m2_INITIAL)*P_INITIAL*object.PASCALS_PER_BAR*(v1_INITIAL*(1-X_INITIAL)+v2_INITIAL*X_INITIAL)/1000+p_topup*v_topup*m_topup*object.PASCALS_PER_BAR/1000; %kJ
+<             pV_final = P_END*object.PASCALS_PER_BAR*m_target*(v1_final*(1-X_END)+v2_final*X_END)/1000; %kJ
+< 
+<             pV_delta = pV_final - pV_initial; %kJ
+---
+>             pV_initial  = (m1_INITIAL+m2_INITIAL)*P_INITIAL*object.PASCALS_PER_BAR*(v1_INITIAL*(1-X_INITIAL)+v2_INITIAL*X_INITIAL)/1000+p_topup*v_topup*m_topup*object.PASCALS_PER_BAR/1000; %kJ
+>             pV_final    = P_END*object.PASCALS_PER_BAR*m_target*(v1_final*(1-X_END)+v2_final*X_END)/1000; %kJ
+>             pV_delta    = pV_final - pV_initial; %kJ
+255,256c274
+<             %sgh_output and sgh_input are inlet and outlet conditions of steam
+<             %generator
+---
+>             %sgh_output and sgh_input are inlet and outlet conditions of steam generator
+258,259c276
+<             %efficiency ratio calc. Check these. Charge time should be >
+<             %discharge time
+---
+>             %efficiency ratio calc. Check these. Charge time should be > discharge time
+261c278
+<             discharge_energy_boost = object.discharge_time*POWER_SA;  %MJ, disch. power set by user
+---
+>             discharge_energy_boost = object.discharge_time*POWER_SA;  % MJ, disch. power set by user
+265,267c282,285
+<         
+<         %'Kaylas section '
+<         function [netRevenue,CC,RC,RD,totalOM,totalCC]=revenue(object,POWER_SA,ENERGY_SA,MAIN_POWER,MIN_LOAD,LTANK,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
+---
+> %         %%
+> %         %'Kaylas section '
+>         function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue(object,POWER_SA,...
+>                 ENERGY_SA,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
+284c302
+<             fileName = 'SA_cost_input.txt'; %change file name in otder to test different ones 
+---
+>             fileName = 'salt_cost_input.txt'; %change file name in otder to test different ones 
+292c310
+<                         caseLine = tline;
+---
+>                         %caseLine = tline;
+315c333,336
+<             costStringArray = [extractBefore(costLine2, costSpaces(1)) extractBetween(costLine2, costSpaces(1)+1, costSpaces(2)-1) extractBetween(costLine2, costSpaces(2)+1, costSpaces(3)-1) extractAfter(costLine2, costSpaces(3))];
+---
+>             costStringArray = [extractBefore(costLine2, costSpaces(1))... 
+>                 extractBetween(costLine2, costSpaces(1)+1, costSpaces(2)-1)... 
+>                 extractBetween(costLine2, costSpaces(2)+1, costSpaces(3)-1)... 
+>                 extractAfter(costLine2, costSpaces(3))];
+321c342,345
+<             scaleFactorStringArray = [extractBefore(scaleFactorLine2, scaleFactorSpaces(1)) extractBetween(scaleFactorLine2, scaleFactorSpaces(1)+1, scaleFactorSpaces(2)-1) extractBetween(scaleFactorLine2, scaleFactorSpaces(2)+1, scaleFactorSpaces(3)-1) extractAfter(scaleFactorLine2, scaleFactorSpaces(3))];
+---
+>             scaleFactorStringArray = [extractBefore(scaleFactorLine2,... 
+>                 scaleFactorSpaces(1)) extractBetween(scaleFactorLine2,... 
+>                 scaleFactorSpaces(1)+1, scaleFactorSpaces(2)-1) extractBetween(scaleFactorLine2,... 
+>                 scaleFactorSpaces(2)+1, scaleFactorSpaces(3)-1) extractAfter(scaleFactorLine2, scaleFactorSpaces(3))];
+327c351,352
+<             startCostStringArray = [extractBefore(startCostLine2, startCostSpaces(1)) extractBetween(startCostLine2, startCostSpaces(1)+1, startCostSpaces(2)-1) extractAfter(startCostLine2, startCostSpaces(2))];
+---
+>             startCostStringArray = [extractBefore(startCostLine2, startCostSpaces(1))... 
+>                 extractBetween(startCostLine2, startCostSpaces(1)+1, startCostSpaces(2)-1) extractAfter(startCostLine2, startCostSpaces(2))];
+350c375
+<             Cp_scaled = Cp * (POWER_SA/Pref)^n_Cp; %cost scaled (power)
+---
+>             Cp_scaled = Cp * (POWER_SA/Pref)^n_Cp;  %cost scaled (power)
+352c377
+<             Op_scaled = Op * (POWER_SA/Pref)^n_Op; %OM scaled (power)
+---
+>             Op_scaled = Op * (POWER_SA/Pref)^n_Op;  %OM scaled (power)
+356,358c381,383
+<             coldStart = startCostDoubleArray(1); %$/MW-Cycle
+<             warmStart = startCostDoubleArray(2); %$/MW-Cycle
+<             hotStart = startCostDoubleArray(3); %$/MW-Cycle
+---
+>             coldStart   = startCostDoubleArray(1); %$/MW-Cycle
+>             warmStart   = startCostDoubleArray(2); %$/MW-Cycle
+>             hotStart    = startCostDoubleArray(3); %$/MW-Cycle
+362,371c387,396
+<             c1=(3/4)*period-c_t/2; %hr, charge time integral lower bound
+<             c2=(3/4)*period+c_t/2; %hr, charge time integral upper bound
+<             d1=(period/4)-d_t/2; %hr, discharge time integral lower bound
+<             d2=(period/4)+d_t/2; %hr, discharge time integral upper bound
+<             y=@(t)peakAmplitude*sin((2*pi()*t)/period)+avgElecPrice; 
+<             intC=integral(y,c1,c2); %$/MW
+<             intD=integral(y,d1,d2); %$/MW
+<             ADP= intD/(d2-d1); %$/MWh, Average discharge price
+<             ACP= intC/(c2-c1); %$/MWh, Average charge price
+<             DP=ADP-ACP ; %$/MWh, delta price
+---
+>             c1   = (3/4)*period-c_t/2;  %hr, charge time integral lower bound
+>             c2   = (3/4)*period+c_t/2;  %hr, charge time integral upper bound
+>             d1   = (period/4)-d_t/2;    %hr, discharge time integral lower bound
+>             d2   = (period/4)+d_t/2;    %hr, discharge time integral upper bound
+>             y    = @(t)peakAmplitude*sin((2*pi()*t)/period)+avgElecPrice; 
+>             intC = integral(y,c1,c2);   %$/MW
+>             intD = integral(y,d1,d2);   %$/MW
+>             ADP  = intD/(d2-d1);        %$/MWh, Average discharge price
+>             ACP  = intC/(c2-c1);        %$/MWh, Average charge price
+>             %DP   = ADP-ACP ;            %$/MWh, delta price
+373,376c398,399
+<             %final costs/revenues caluclated and displayed 
+<             %These need to be updated to account for ramping.
+<             RC=ACP*c_t*Y*(MAIN_POWER-MIN_LOAD)/10^6; %MM$/year, forgone revenue from charging
+<             RD=ADP*d_t*Y*POWER_SA/10^6; %MM$/year, revenue from discharging
+---
+>             % Final costs/revenues caluclated and displayed (These need to
+>             % be updated to account for ramping.)
+395c418
+<         
+---
+>         %%
+410c433
+<             ylabel('quality')
+---
+>             ylabel('Quality [no dimension]')
+412c435,437
+<       function Q_loss = Q_loss(~,internal_temp)
+---
+>         %%
+>         
+>         function Q_loss = Q_loss(~,internal_temp)
+416,421c441,446
+<             ksteel      =41; %(W/mK)
+<             kinsul      =0.07; %(W/mK) --> thermal condictivity of calcium silicate 
+<             Dpipe       =0.8128; %pipe outer diameter (m)
+<             Tpipe       =0.015875; %pipe thickness (m)
+<             Tinsul      =0.4064; %insulation thickness (m)
+<             D           =Dpipe+2*Tinsul; %total diameter (m)
+---
+>             ksteel      = 41; %(W/mK)
+>             kinsul      = 0.07; %(W/mK) --> thermal condictivity of calcium silicate 
+>             Dpipe       = 0.8128; %pipe outer diameter (m)
+>             Tpipe       = 0.015875; %pipe thickness (m)
+>             Tinsul      = 0.4064; %insulation thickness (m)
+>             D           = Dpipe+2*Tinsul; %total diameter (m)
+423,427c448,452
+<             Tf          =350; %(K)
+<             kair        =0.03; %(W/mK)
+<             Pr          =0.7;
+<             alpha       =29.9*10^-6; %(m^2/s)
+<             viscosity   =20.92*10^-6; %(m^2/s)
+---
+>             Tf          = 350; %(K)
+>             kair        = 0.03; %(W/mK)
+>             Pr          = 0.7;
+>             alpha       = 29.9*10^-6; %(m^2/s)
+>             viscosity   = 20.92*10^-6; %(m^2/s)
+429,432c454,457
+<             Tinf        =303; %(K)
+<             Beta        =1/Tf;
+<             Ts          =2*Tf-Tinf; %(K)
+<             Ts2         =0;
+---
+>             Tinf        = 303; %(K)
+>             Beta        = 1/Tf;
+>             Ts          = 2*Tf-Tinf; %(K)
+>             Ts2         = 0;
+435,448c460,473
+<             while abs(Ts-Ts2) > .001;
+<                 Ra      =(9.81*Beta*(Ts-Tinf)*D^3)/(viscosity*alpha);
+<                 Nu      =(0.6+(0.387*Ra^(1/6))/(1+(0.559/Pr)^(9/16))^(8/27))^2;
+<                 h       =(Nu*kair)/D;
+<                 R1      =log((Dpipe/2)/((Dpipe-2*Tpipe)/2))/(2*pi()*ksteel); %conductive resistance of pipe (m*K/W)
+<                 R2      =log((Dpipe/2+Tinsul)/(Dpipe/2))/(2*pi()*kinsul); %conductive resistance of insul (m*K/W)
+<                 Rconv   =1/(h*pi()*D); %(m*K/W)
+<                 Rtotal  =R1+R2+Rconv;
+<                 Tdelta  =(internal_temp+273)-Tinf; %check the signs of the equations, make sure energy is flowing out t1>tinf
+<                 Q       =Tdelta/Rtotal; %W/m
+<                 Ts1     =Q*Rconv+Tinf;
+<                 Ts2     =Ts;
+<                 Ts      =Ts1;
+<                 iter    =iter+1;
+---
+>             while abs(Ts-Ts2) > .001
+>                 Ra      = (9.81*Beta*(Ts-Tinf)*D^3)/(viscosity*alpha);
+>                 Nu      = (0.6+(0.387*Ra^(1/6))/(1+(0.559/Pr)^(9/16))^(8/27))^2;
+>                 h       = (Nu*kair)/D;
+>                 R1      = log((Dpipe/2)/((Dpipe-2*Tpipe)/2))/(2*pi()*ksteel); %conductive resistance of pipe (m*K/W)
+>                 R2      = log((Dpipe/2+Tinsul)/(Dpipe/2))/(2*pi()*kinsul); %conductive resistance of insul (m*K/W)
+>                 Rconv   = 1/(h*pi()*D); %(m*K/W)
+>                 Rtotal  = R1+R2+Rconv;
+>                 Tdelta  = (internal_temp+273)-Tinf; %check the signs of the equations, make sure energy is flowing out t1>tinf
+>                 Q       = Tdelta/Rtotal; %W/m
+>                 Ts1     = Q*Rconv+Tinf;
+>                 Ts2     = Ts;
+>                 Ts      = Ts1;
+>                 iter    = iter+1;
+451c476
+<         end  
+---
+>         end
+453c478
+<     
+---
+> %%
+454a480
+>         %%
+467,498c493,524
+<             object.p=zeros(object.N,1);         % bar
+<             object.m1=zeros(object.N,1);        % kg
+<             object.m2=zeros(object.N,1);
+<             object.Vol1=zeros(object.N,1);      % m3
+<             object.Vol2=zeros(object.N,1);      %m3
+<             object.v1=zeros(object.N,1);        %m3/kg
+<             object.v2=zeros(object.N,1);        %m3/kg
+<             object.rho1=zeros(object.N,1);      % kg/m3
+<             object.rho2=zeros(object.N,1);
+<             object.h1=zeros(object.N,1);        % kJ/kg 
+<             object.h2=zeros(object.N,1);
+<             object.h2in=zeros(object.N,1);
+<             object.h2out=zeros(object.N,1);
+<             object.x=zeros(object.N,1);
+<             object.t1=zeros(object.N,1);        % C
+<             object.t2=zeros(object.N,1);
+<             object.m1b=zeros(object.N,1);       % kg/s
+<             object.m2b=zeros(object.N,1);
+<             object.mh1b=zeros(object.N,1);      % kJ/s
+<             object.mh2b=zeros(object.N,1);
+<             object.mpt1=zeros(object.N,1);      % kg/s
+<             object.mpt2=zeros(object.N,1);      % kg/s; mpt2=-mpt1 
+<             object.QLOSS=zeros(object.N,1);     % kW, heat loss out of pipe
+<             object.qloss1=zeros(object.N,1);    %kW
+<             object.qloss2=zeros(object.N,1);    %kW
+<             object.dv1dh=zeros(object.N,1);
+<             object.dv2dh=zeros(object.N,1);
+<             object.dv1dp=zeros(object.N,1);
+<             object.dv2dp=zeros(object.N,1);
+<             object.Area_int=zeros(object.N,1); %m^2/m^3
+<             object.Qint=zeros(object.N,1); %kW
+<             object.VAP_OUT=zeros(object.N,1); %kg/s
+---
+>             object.p        = zeros(object.N,1); % bar
+>             object.m1       = zeros(object.N,1); % kg
+>             object.m2       = zeros(object.N,1); % kg
+>             object.Vol1     = zeros(object.N,1); % m3
+>             object.Vol2     = zeros(object.N,1); % m3
+>             object.v1       = zeros(object.N,1); % m3/kg
+>             object.v2       = zeros(object.N,1); % m3/kg
+>             object.rho1     = zeros(object.N,1); % kg/m3
+>             object.rho2     = zeros(object.N,1); % kg/m3
+>             object.h1       = zeros(object.N,1); % kJ/kg 
+>             object.h2       = zeros(object.N,1);
+>             object.h2in     = zeros(object.N,1);
+>             object.h2out    = zeros(object.N,1);
+>             object.x        = zeros(object.N,1);
+>             object.t1       = zeros(object.N,1); % C
+>             object.t2       = zeros(object.N,1);
+>             object.m1b      = zeros(object.N,1); % kg/s
+>             object.m2b      = zeros(object.N,1);
+>             object.mh1b     = zeros(object.N,1); % kJ/s
+>             object.mh2b     = zeros(object.N,1);
+>             object.mpt1     = zeros(object.N,1); % kg/s
+>             object.mpt2     = zeros(object.N,1); % kg/s; mpt2=-mpt1 
+>             object.QLOSS    = zeros(object.N,1); % kW, heat loss out of pipe
+>             object.qloss1   = zeros(object.N,1); % kW
+>             object.qloss2   = zeros(object.N,1); % kW
+>             object.dv1dh    = zeros(object.N,1);
+>             object.dv2dh    = zeros(object.N,1);
+>             object.dv1dp    = zeros(object.N,1);
+>             object.dv2dp    = zeros(object.N,1);
+>             object.Area_int = zeros(object.N,1); % m^2/m^3
+>             object.Qint     = zeros(object.N,1); % kW
+>             object.VAP_OUT  = zeros(object.N,1); % kg/s
+500a527
+>         %%
+503,528c530,558
+<             object.x(object.i)=X0; %initial quality in tank
+<             object.p(object.i)=P0; %initial pressure in tank (bar)
+<             object.rho1(object.i)=XSteam('rhoL_p',object.p(object.i)); %kg/m3
+<             object.rho2(object.i)=XSteam('rhoV_p',object.p(object.i)); %kg/m3
+<             object.t1(object.i)=XSteam('Tsat_p',object.p(object.i));
+<             object.t2(object.i)=object.t1(object.i);
+<             object.mix_rho=1./(object.x(object.i)/object.rho2(object.i)+(1.-object.x(object.i))/object.rho1(object.i));
+<             object.m_total=object.mix_rho*VTANK; %total mass in tank
+<             object.m_original = object.m_total;   % save initial mass inventory
+<             object.m1(object.i)=object.m_total*(1-object.x(object.i)); %total liquid mass in tank (kg)
+<             object.m2(object.i)=object.m_total*object.x(object.i); %total vapor mass in tank (kg)
+<             object.Vol1(object.i)=object.m1(object.i)/object.rho1(object.i); %liquid volume in tank (m3)
+<             object.Vol2(object.i)=object.m2(object.i)/object.rho2(object.i); %vapor volume in tank (m3)
+<             object.Vol_total(object.i)=object.Vol1(object.i)+object.Vol2(object.i); %volume of liquid and vapor in tank should be conserved(m3)
+<             object.v1(object.i)=1/object.rho1(object.i); %liquid specific volume in tank (m3/kg)
+<             object.v2(object.i)=1/object.rho2(object.i); %vapor specific volume in tank (m3/kg)
+<             object.h1(object.i) = XSteam('h_pT',object.p(object.i),object.t1(object.i)-object.EPSILON); %(kj/kg)
+<             object.h2(object.i) = XSteam('h_pT',object.p(object.i),object.t2(object.i)+object.EPSILON);
+<             object.Dh=(XSteam('v_ph',object.p(object.i),object.h1(object.i)+object.deltaH)-XSteam('v_ph',object.p(object.i),object.h1(object.i)))/abs(object.deltaH); %numerical derivative
+<             object.Dp=(XSteam('v_ph',object.p(object.i)+object.deltaP,object.h1(object.i))-XSteam('v_ph',object.p(object.i),object.h1(object.i)))/abs(object.deltaP); %numerical derivative
+<             object.QLOSS(object.i) = object.length*Q_loss(object,(object.t1(object.i)+object.t2(object.i))/2); %initial heat loss value (kW) 
+<             object.qloss1(object.i)=(object.Vol1(object.i)/(object.Vol1(object.i)+object.Vol2(object.i)))*object.QLOSS(object.i); %volume fraction of heat lost by liquid (kW)
+<             object.qloss2(object.i)=(object.Vol2(object.i)/(object.Vol1(object.i)+object.Vol2(object.i)))*object.QLOSS(object.i); %volume fraction of heat lost by vapor (kW) 
+<             object.Area_int(object.i)=2*object.radius*cos(asin(((object.Vol1(object.i)/object.Vol_total(object.i))-object.radius)/object.radius))*object.length; %Minimum Interface Area between the two phases[m^2/m^3]
+<             object.Qint(object.i)=0; %kW
+<             object.HH_initial=object.m1(object.i)*object.h1(object.i)+object.m2(object.i)*object.h2(object.i); %kJ
+---
+>             object.x(object.i)          = X0; %initial quality in tank
+>             object.p(object.i)          = P0; %initial pressure in tank (bar)
+>             object.rho1(object.i)       = XSteam('rhoL_p',object.p(object.i)); %kg/m3
+>             object.rho2(object.i)       = XSteam('rhoV_p',object.p(object.i)); %kg/m3
+>             object.t1(object.i)         = XSteam('Tsat_p',object.p(object.i));
+>             object.t2(object.i)         = object.t1(object.i);
+>             object.mix_rho              = 1./(object.x(object.i)/object.rho2(object.i)+(1.-object.x(object.i))/object.rho1(object.i));
+>             object.m_total              = object.mix_rho*VTANK; %total mass in tank
+>             object.m_original           = object.m_total;   % save initial mass inventory
+>             object.m1(object.i)         = object.m_total*(1-object.x(object.i)); %total liquid mass in tank (kg)
+>             object.m2(object.i)         = object.m_total*object.x(object.i); %total vapor mass in tank (kg)
+>             object.Vol1(object.i)       = object.m1(object.i)/object.rho1(object.i); %liquid volume in tank (m3)
+>             object.Vol2(object.i)       = object.m2(object.i)/object.rho2(object.i); %vapor volume in tank (m3)
+>             object.Vol_total(object.i)  = object.Vol1(object.i)+object.Vol2(object.i); %volume of liquid and vapor in tank should be conserved(m3)
+>             object.v1(object.i)         = 1/object.rho1(object.i); %liquid specific volume in tank (m3/kg)
+>             object.v2(object.i)         = 1/object.rho2(object.i); %vapor specific volume in tank (m3/kg)
+>             object.h1(object.i)         = XSteam('h_pT',object.p(object.i),object.t1(object.i)-object.EPSILON); %(kj/kg)
+>             object.h2(object.i)         = XSteam('h_pT',object.p(object.i),object.t2(object.i)+object.EPSILON);
+>             object.Dh                   = (XSteam('v_ph',object.p(object.i),object.h1(object.i)+object.deltaH)...
+>                 -XSteam('v_ph',object.p(object.i),object.h1(object.i)))/abs(object.deltaH); %numerical derivative
+>             object.Dp                   = (XSteam('v_ph',object.p(object.i)+object.deltaP,object.h1(object.i))...
+>                 -XSteam('v_ph',object.p(object.i),object.h1(object.i)))/abs(object.deltaP); %numerical derivative
+>             object.QLOSS(object.i)      = object.length*Q_loss(object,(object.t1(object.i)+object.t2(object.i))/2); %initial heat loss value (kW) 
+>             object.qloss1(object.i)     = (object.Vol1(object.i)/(object.Vol1(object.i)+object.Vol2(object.i)))*object.QLOSS(object.i); %volume fraction of heat lost by liquid (kW)
+>             object.qloss2(object.i)     = (object.Vol2(object.i)/(object.Vol1(object.i)+object.Vol2(object.i)))*object.QLOSS(object.i); %volume fraction of heat lost by vapor (kW) 
+>             object.Area_int(object.i)   = 2*object.radius*cos(asin(((object.Vol1(object.i)...
+>                 /object.Vol_total(object.i))-object.radius)/object.radius))*object.length; %Minimum Interface Area between the two phases[m^2/m^3]
+>             object.Qint(object.i)       = 0; %kW
+>             object.HH_initial           = object.m1(object.i)*object.h1(object.i)+object.m2(object.i)*object.h2(object.i); %kJ
+531c561
+< 
+---
+> %%
+533,534c563,564
+<                 %RANKINE A simulation of the ideal Rankine Cycle
+<         %'   RANKINE(IN) generates the thermodynamic properties of the ideal
+---
+>         %RANKINE A simulation of the ideal Rankine Cycle
+>         %'  RANKINE(IN) generates the thermodynamic properties of the ideal
+538d567
+<         %
+547,607c576,606
+< 
+<    
+<            p_low_side  = 0.07; %bar
+<            coolant_in = 15; %deg C
+<            coolant_out = 40; %deg C
+<          
+< 
+<         %% 'Look up thermodynamic properties at State 1'
+< 
+<            h_location1  = XSteam('hV_p', press)  ;
+<            s_location1  = XSteam('sV_p', press)  ;
+< 
+<         %% 'Look up and compute properties for State 2'
+< 
+<            s_location2  =  s_location1                  ;
+< 
+<            sg  = XSteam('sV_p', p_low_side)  ;
+<            sf  = XSteam('sL_p', p_low_side)  ;
+< 
+<            hg  = XSteam('hV_p', p_low_side)  ;
+<            hf  = XSteam('hL_p', p_low_side)  ;
+<            hfg = hg - hf              ;
+< 
+<            x_location2  = (s_location2-sf) / (sg-sf)    ;
+< 
+<            h_location2  = hf + x_location2*hfg          ;
+< 
+<         %% State 3 properties
+< 
+<            h_location3  = hf                   ;
+< 
+<         %% State 4 properties
+< 
+<            v_location3  = XSteam('vL_p', p_low_side)  ;
+<            h_location4  = h_location3 + v_location3*(press - p_low_side)*1e3;
+< 
+<         %% Compute the Thermodynamic Efficiency 
+< 
+<            mu  = ((h_location1-h_location2) - (h_location4-h_location3)) / (h_location1-h_location4);
+< 
+<         %% Compute the Backwork Ratio
+< 
+<            bwr = (h_location4-h_location3) / (h_location1-h_location2) ;
+< 
+<         %% Compute the Mass flow rate at the condenser
+<            
+<              md  =  (po*10^6)/( ((h_location1-h_location2)-(h_location4-h_location3))*1000 ) ;
+<            
+<         %% Qd (Energy flow)
+< 
+<            Qdin  = md * (h_location1-h_location4)*1000 ; 
+<            Qdout = md * (h_location2-h_location3)*1000 ;
+< 
+<         %% Steady state energy
+< 
+<            hC    = XSteam('hL_T', coolant_in)  ;
+<            hH    = XSteam('hL_T', coolant_out)  ;
+< 
+<            mdcw  = md * (h_location2-h_location3)/(hH-hC)      ;
+< 
+<         end    
+---
+>         p_low_side  = 0.07;  % bar
+>         coolant_in  = 15;    % deg C
+>         coolant_out = 40;    % deg C
+>         % State 1 properties
+>         H1    = XSteam('hV_p', press); % Saturated vapour enthalpy at State 1
+>         S1    = XSteam('sV_p', press); % Saturated vapour entropy at State 1
+>         % State 2 properties
+>         S2    = S1;
+>         Sg    = XSteam('sV_p', p_low_side);
+>         Sf    = XSteam('sL_p', p_low_side);
+>         Hg    = XSteam('hV_p', p_low_side)  ;
+>         Hf    = XSteam('hL_p', p_low_side)  ;
+>         Hfg   = Hg - Hf;
+>         X2    = (S2-Sf) / (Sg-Sf);
+>         H2    = Hf + X2*Hfg;
+>         % State 3 properties
+>         H3    = Hf;
+>         % State 4 properties
+>         V3    = XSteam('vL_p', p_low_side); 
+>         H4    = H3 + V3*(press - p_low_side)*1e3;
+>         % Final output
+>         mu    = ((H1-H2) - (H4-H3)) / (H1-H4);      % Thermodynamic Efficiency 
+>         md    = (po*10^6)/(((H1-H2)-(H4-H3))*1000); % Mass flow rate at the condenser
+>         bwr   = (H4-H3) / (H1-H2) ;                 % Backwork Ratio
+>         Qdin  = md * (H1-H4)*1000;                  % Energy flow in
+>         Qdout = md * (H2-H3)*1000;                  % Energy flow out
+>         hC    = XSteam('hL_T', coolant_in);         % Steady state energy
+>         hH    = XSteam('hL_T', coolant_out);
+>         mdcw  = md * (H2-H3)/(hH-hC);
+>         end
+>         %%
+609c608
+<     
+---
+>     %%
+611d609
+< 
+613c611
+<             accumulator = steam_accumulator_separate(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);
+---
+>             accumulator = steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);
+615,617d612
+<         
+<         
+<          
+619c614
+<   
+---
+> 
