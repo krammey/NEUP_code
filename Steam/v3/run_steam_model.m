@@ -13,12 +13,12 @@ start_time = tic;
 %===========================================================================================
 % Parameter      |  Value                       | Units       | Description
 %----------------|------------------------------|-------------|-----------------------------
-POWER_SA            = 50;                       % MW,           maximum electric power provided by steam accumulator
-ENERGY_SA           = 400;                      % MWh 
-T_MAX               = ENERGY_SA/POWER_SA;		% hr,           time capacity at max SA power --> essentially the discharge time without ramping
+POWER               = 50;                       % MW,           maximum electric power provided by steam accumulator
+ENERGY              = 400;                      % MWh 
+T_MAX               = ENERGY/POWER;             % hr,           time capacity at max SA power --> essentially the discharge time without ramping
 D_RAMP_RATE         = 1.67;                     % percent/min,  discharge ramp rate (SA turbine, % of max power/min)
-POWER_SA_INITIAL    = 0;                        % MW,           cold start
-T_RAMP              = 60*((POWER_SA-POWER_SA_INITIAL)/((D_RAMP_RATE/100)*POWER_SA)); % s, time to ramp up to max power
+POWER_INITIAL       = 0;                        % MW,           cold start
+T_RAMP              = 60*((POWER-POWER_INITIAL)/((D_RAMP_RATE/100)*POWER)); % s, time to ramp up to max power
 T_END               = T_RAMP+T_MAX*3600; 		% s,            discharge time with ramp up and time at max power
 T_STORE             = 10*3600;                  % s,            storage time (10 hours)
 DT                  = 10;  						% s,            time step
@@ -28,7 +28,7 @@ VTANK               = LTANK.*pi.*RTANK^2.;  	% m3
 t_length            = floor(T_RAMP/DT);         %               length of ramping power vector
 pow                 = zeros(t_length,1);		% MW,           power as SA turbine is ramping up
 for t = 1:t_length
-    pow(t)          = t*DT*((D_RAMP_RATE/100)*POWER_SA)/60;
+    pow(t)          = t*DT*((D_RAMP_RATE/100)*POWER)/60;
 end
 
 %===========================================================================================
@@ -97,8 +97,8 @@ caseNumber = 3;
 % Block 1 - Discharge cycle
 discharge = 1; 										% turns discharge on
 ACC = steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);
-ACC.run_accumulator(POWER_SA, pow, discharge); 		% runs discharge
-ACC.charge(P0,X0,VTANK,MDOT_CHARGE,POWER_REDUCTION,POWER_SA,p_topup,h_topup,sgh_input,sgh_output);
+ACC.run_accumulator(POWER, pow, discharge); 		% runs discharge
+ACC.charge(P0,X0,VTANK,MDOT_CHARGE,POWER_REDUCTION,POWER,p_topup,h_topup,sgh_input,sgh_output);
 
 % Block 2 - storage mode
 % discharge = 0; % turns discharge off (store)
@@ -109,10 +109,10 @@ ACC.charge(P0,X0,VTANK,MDOT_CHARGE,POWER_REDUCTION,POWER_SA,p_topup,h_topup,sgh_
 % Run revenue_model.m
 %------------------------------------------------------------------------
 addpath('../../Revenue/')
-[netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model("steam",ACC,T_END,POWER_SA,ENERGY_SA,...
+[netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model("steam",ACC,T_END,POWER,ENERGY,...
     MAIN_POWER,MIN_LOAD,LTANK,life,interest,period,peakAmplitude,...
-        avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
-
+    avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
+        
 %------------------------------------------------------------------------
 % Plotting  (need to add more plots)
 %------------------------------------------------------------------------
