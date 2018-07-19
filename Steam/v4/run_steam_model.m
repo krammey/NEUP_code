@@ -151,9 +151,6 @@ for i = 1:length(POWER_array)
         CC_Results(i,j+1)      = CC;
         TotalCC_Results(i,j+1) = totalCC;
         TotalOM_Results(i,j+1) = totalOM;
-        
-        %         Results(:,count) = [POWER T_MAX netRevenue CC startCost totalOM totalCC]';
-        %         Results_temp(:,j) = [POWER T_MAX netRevenue CC startCost totalOM totalCC]';
     end
     
 end
@@ -161,34 +158,53 @@ end
 % ------------------------------------------------------------------------
 % Plotting
 % ------------------------------------------------------------------------
-
+% COLORS
+% Blue: 0 0.45 0.74
+% yellow: 0.93 0.69 0.13
+% Red: 0.85 0.33 0.1
 figure
-% subplot(1,4,1)
-subplot(2,2,1)
-plot(T_MAX_array,Revenue_Results(:,2:length(Revenue_Results)),'-d'),
-legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
-ylabel("Annual Net Revenue [million $]")
+subplot(1,4,1)
+% subplot(2,2,1)
+hold on
+plot(categorical(T_MAX_array),Revenue_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),Revenue_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1')
+plot(categorical(T_MAX_array),Revenue_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13')
+hold off
+% legend(string(POWER_array),'Location','EastOutside'), pbaspect([1 1 1])
+ylabel("Annual Net Revenue [million $]"), xlabel('Hours of storage')
 % CC
-% subplot(1,4,2)
-subplot(2,2,2)
-plot(T_MAX_array,CC_Results(:,2:length(CC_Results)),'-d'),
-legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
-ylabel('Annual CC [million $]')
+subplot(1,4,2)
+% subplot(2,2,2)
+hold on
+plot(categorical(T_MAX_array),CC_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),CC_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
+plot(categorical(T_MAX_array),CC_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
+hold off
+% legend(string(POWER_array),'Location','EastOutside'), pbaspect([1 1 1])
+ylabel('Annual CC [million $]'), xlabel('Hours of storage')
 % Total OM
-% subplot(1,4,3)
-subplot(2,2,3)
-plot(T_MAX_array,TotalOM_Results(:,2:length(TotalOM_Results)),'-d'),
-legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
-ylabel('Total O&M [million $]')
+subplot(1,4,3)
+% subplot(2,2,3)
+hold on
+plot(categorical(T_MAX_array),TotalOM_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),TotalOM_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
+plot(categorical(T_MAX_array),TotalOM_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
+hold off
+% legend(string(POWER_array),'Location','EastOutside'), pbaspect([1 1 1])
+ylabel('Total O&M [million $]'), xlabel('Hours of storage')
 % Total CC
-% subplot(1,4,4)
-subplot(2,2,4)
-plot(T_MAX_array,TotalCC_Results(:,2:length(TotalCC_Results)),'-d'),
-legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
-ylabel('Total CC [million $]')
+subplot(1,4,4)
+% subplot(2,2,4)
+hold on
+plot(categorical(T_MAX_array),TotalCC_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),TotalCC_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
+plot(categorical(T_MAX_array),TotalCC_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
+hold off
+legend(string(POWER_array),'Location','EastOutside','boxoff'), %pbaspect([1 1 1])
+ylabel('Total CC [million $]'), xlabel('Hours of storage')
 set(gcf,'Color','w')
 set(findall(gcf,'-property','FontSize'),'FontSize',10)
-
+set(findall(gcf,'-property','MarkerSize'),'MarkerSize',4)
 
 
 
