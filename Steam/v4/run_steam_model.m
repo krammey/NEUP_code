@@ -13,27 +13,13 @@ start_time = tic;
 %===========================================================================================
 % Parameter      |  Value                       | Units       | Description
 %----------------|------------------------------|-------------|-----------------------------
-% POWER               = 50;                       % MW,           maximum electric power provided by steam accumulator
-% ENERGY              = 400;                      % MWh
-% T_MAX               = ENERGY/POWER;             % hr,           time capacity at max SA power --> essentially the discharge time without ramping
 D_RAMP_RATE         = 1.67;                     % percent/min,  discharge ramp rate (SA turbine, % of max power/min)
 POWER_INITIAL       = 0;                        % MW,           cold start
-% T_RAMP              = 60*((POWER-POWER_INITIAL)/((D_RAMP_RATE/100)*POWER)); % s, time to ramp up to max power
-% T_END               = T_RAMP+T_MAX*3600; 		% s,            discharge time with ramp up and time at max power
 T_STORE             = 10*3600;                  % s,            storage time (10 hours)
 DT                  = 10;  						% s,            time step
 RTANK               = 0.4064;                   % m,            pipe radius (16 inches)
 LTANK               = 100000.;                  % m,            pipe length
 VTANK               = LTANK.*pi.*RTANK^2.;  	% m3
-% t_length            = floor(T_RAMP/DT);         %               length of ramping power vector
-% pow                 = zeros(t_length,1);		% MW,           power as SA turbine is ramping up
-% for t = 1:t_length
-%     pow(t)          = t*DT*((D_RAMP_RATE/100)*POWER)/60;
-% end
-
-%===========================================================================================
-% Accumulator initial thermo properties
-%===========================================================================================
 P0                  = 70; 						% bar,          initial pressure
 X0                  = 0.06;                     %               vapor quality (mass fraction)
 
@@ -93,9 +79,7 @@ caseNumber = 3;
 
 POWER_array = [50 100 150]; % array of powers to be tested
 T_MAX_array = [1 2 3 4 5 6 7 8]; % array of storage times to be tested
-
-Results = zeros(7,length(POWER_array)*length(T_MAX_array));
-
+J = length(T_MAX_array);
 Revenue_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
 CC_Results      = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
 TotalCC_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
@@ -166,9 +150,9 @@ figure
 subplot(1,4,1)
 % subplot(2,2,1)
 hold on
-plot(categorical(T_MAX_array),Revenue_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
-plot(categorical(T_MAX_array),Revenue_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1')
-plot(categorical(T_MAX_array),Revenue_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13')
+plot(categorical(T_MAX_array),Revenue_Results(1,2:J+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),Revenue_Results(2,2:J+1),'-s','MarkerFaceColor','0.85 0.33 0.1')
+plot(categorical(T_MAX_array),Revenue_Results(3,2:J+1),'-o','MarkerFaceColor','0.93 0.69 0.13')
 hold off
 % legend(string(POWER_array),'Location','EastOutside'), pbaspect([1 1 1])
 ylabel("Annual Net Revenue [million $]"), xlabel('Hours of storage')
@@ -176,9 +160,9 @@ ylabel("Annual Net Revenue [million $]"), xlabel('Hours of storage')
 subplot(1,4,2)
 % subplot(2,2,2)
 hold on
-plot(categorical(T_MAX_array),CC_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
-plot(categorical(T_MAX_array),CC_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
-plot(categorical(T_MAX_array),CC_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
+plot(categorical(T_MAX_array),CC_Results(1,2:J+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),CC_Results(2,2:J+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
+plot(categorical(T_MAX_array),CC_Results(3,2:J+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
 hold off
 % legend(string(POWER_array),'Location','EastOutside'), pbaspect([1 1 1])
 ylabel('Annual CC [million $]'), xlabel('Hours of storage')
@@ -186,9 +170,9 @@ ylabel('Annual CC [million $]'), xlabel('Hours of storage')
 subplot(1,4,3)
 % subplot(2,2,3)
 hold on
-plot(categorical(T_MAX_array),TotalOM_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
-plot(categorical(T_MAX_array),TotalOM_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
-plot(categorical(T_MAX_array),TotalOM_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
+plot(categorical(T_MAX_array),TotalOM_Results(1,2:J+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),TotalOM_Results(2,2:J+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
+plot(categorical(T_MAX_array),TotalOM_Results(3,2:J+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
 hold off
 % legend(string(POWER_array),'Location','EastOutside'), pbaspect([1 1 1])
 ylabel('Total O&M [million $]'), xlabel('Hours of storage')
@@ -196,9 +180,9 @@ ylabel('Total O&M [million $]'), xlabel('Hours of storage')
 subplot(1,4,4)
 % subplot(2,2,4)
 hold on
-plot(categorical(T_MAX_array),TotalCC_Results(1,2:j+1),'-d','MarkerFaceColor','0 0.45 0.74'),
-plot(categorical(T_MAX_array),TotalCC_Results(2,2:j+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
-plot(categorical(T_MAX_array),TotalCC_Results(3,2:j+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
+plot(categorical(T_MAX_array),TotalCC_Results(1,2:J+1),'-d','MarkerFaceColor','0 0.45 0.74'),
+plot(categorical(T_MAX_array),TotalCC_Results(2,2:J+1),'-s','MarkerFaceColor','0.85 0.33 0.1'),
+plot(categorical(T_MAX_array),TotalCC_Results(3,2:J+1),'-o','MarkerFaceColor','0.93 0.69 0.13'),
 hold off
 legend(string(POWER_array),'Location','EastOutside','boxoff'), %pbaspect([1 1 1])
 ylabel('Total CC [million $]'), xlabel('Hours of storage')
