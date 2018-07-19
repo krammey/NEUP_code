@@ -14,7 +14,7 @@ start_time = tic;
 % Parameter      |  Value                       | Units       | Description
 %----------------|------------------------------|-------------|-----------------------------
 % POWER               = 50;                       % MW,           maximum electric power provided by steam accumulator
-% ENERGY              = 400;                      % MWh 
+% ENERGY              = 400;                      % MWh
 % T_MAX               = ENERGY/POWER;             % hr,           time capacity at max SA power --> essentially the discharge time without ramping
 D_RAMP_RATE         = 1.67;                     % percent/min,  discharge ramp rate (SA turbine, % of max power/min)
 POWER_INITIAL       = 0;                        % MW,           cold start
@@ -35,7 +35,7 @@ VTANK               = LTANK.*pi.*RTANK^2.;  	% m3
 % Accumulator initial thermo properties
 %===========================================================================================
 P0                  = 70; 						% bar,          initial pressure
-X0                  = 0.06;                     %               vapor quality (mass fraction) 
+X0                  = 0.06;                     %               vapor quality (mass fraction)
 
 %===========================================================================================
 % Main plant properties
@@ -73,15 +73,15 @@ var_om              = 8;          % $/MWh,          from Neal
 %------------------------------------------------------------------------
 % Set Case Number
 %------------------------------------------------------------------------
-% DESIGNS: 
+% DESIGNS:
 % divert main steam (MS)
 % preheat feedwater (FW)
-% POWER TRAIN: 
-% if Pdisch > 0.2Preactor, need additional power train (PT) 
+% POWER TRAIN:
+% if Pdisch > 0.2Preactor, need additional power train (PT)
 % if not, can just upgrade exisitng (UG)
-% HEAT SINK: 
-% if diverting MS and Pchg > 0.5Preactor, need heat sink in 
-% case of issue taking accumulator offline (HS); 
+% HEAT SINK:
+% if diverting MS and Pchg > 0.5Preactor, need heat sink in
+% case of issue taking accumulator offline (HS);
 % otherwise (NA)
 % case 1: MS, PT, HS
 % case 2: MS, UG, HS
@@ -92,12 +92,21 @@ var_om              = 8;          % $/MWh,          from Neal
 caseNumber = 3;
 
 POWER_array = [50 100 150]; % array of powers to be tested
-T_MAX_array = [1 4 8]; % array of storage times to be tested
-Results = zeros(length(POWER_array)*length(T_MAX_array),8);
+T_MAX_array = [1 2 3 4 5 6 7 8]; % array of storage times to be tested
+
+Results = zeros(7,length(POWER_array)*length(T_MAX_array));
+
+Revenue_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+CC_Results      = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+TotalCC_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+TotalOM_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+
 count = 0;
 for i = 1:length(POWER_array)
+    hr_count = 0;
+    Results_temp = zeros(7,length(T_MAX_array));
     for j = 1:length(T_MAX_array)
-        
+        hr_count = hr_count+1;
         count = count+1;
         POWER = POWER_array(i);
         T_MAX = T_MAX_array(j);
@@ -111,7 +120,7 @@ for i = 1:length(POWER_array)
         t_length = floor(T_RAMP/DT);                  %      length of ramping power vector
         t        = 1:t_length;                        %      time array
         pow      = DT*t*((D_RAMP_RATE/100)*POWER)/60; % [MW] power as SA turbine is ramping up
-
+        
         %------------------------------------------------------------------------
         % Run steam_model.m (onlyun either block 1 or block 2)
         %------------------------------------------------------------------------
@@ -130,18 +139,58 @@ for i = 1:length(POWER_array)
         % Run revenue_model.m
         %------------------------------------------------------------------------
         addpath('../../Revenue/')
-        [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model("steam",ACC,T_END,POWER,ENERGY,...
-            MAIN_POWER,MIN_LOAD,LTANK,life,interest,period,peakAmplitude,...
+        disp(['Power = ' num2str(POWER) 'Hours = ' num2str(T_MAX)])
+        [netRevenue,CC,startCost,totalOM,totalCC] = revenue_model("steam",ACC,T_END,POWER,ENERGY,...
+            MAIN_POWER,MIN_LOAD,life,interest,period,peakAmplitude,...
             avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
+        disp(' ')
+        %------------------------------------------------------------------------
+        % Save Results
+        %------------------------------------------------------------------------
+        Revenue_Results(i,j+1) = netRevenue;
+        CC_Results(i,j+1)      = CC;
+        TotalCC_Results(i,j+1) = totalCC;
+        TotalOM_Results(i,j+1) = totalOM;
         
-        Results(count,:) = [POWER,T_MAX,netRevenue,CC,RC,RD,totalOM,totalCC];
+        %         Results(:,count) = [POWER T_MAX netRevenue CC startCost totalOM totalCC]';
+        %         Results_temp(:,j) = [POWER T_MAX netRevenue CC startCost totalOM totalCC]';
     end
+    
 end
 
-%------------------------------------------------------------------------
-% Plotting  (need to add more plots)
-%------------------------------------------------------------------------
-% acc.plots();
+% ------------------------------------------------------------------------
+% Plotting
+% ------------------------------------------------------------------------
+
+figure
+% subplot(1,4,1)
+subplot(2,2,1)
+plot(T_MAX_array,Revenue_Results(:,2:length(Revenue_Results)),'-d'),
+legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
+ylabel("Annual Net Revenue [million $]")
+% CC
+% subplot(1,4,2)
+subplot(2,2,2)
+plot(T_MAX_array,CC_Results(:,2:length(CC_Results)),'-d'),
+legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
+ylabel('Annual CC [million $]')
+% Total OM
+% subplot(1,4,3)
+subplot(2,2,3)
+plot(T_MAX_array,TotalOM_Results(:,2:length(TotalOM_Results)),'-d'),
+legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
+ylabel('Total O&M [million $]')
+% Total CC
+% subplot(1,4,4)
+subplot(2,2,4)
+plot(T_MAX_array,TotalCC_Results(:,2:length(TotalCC_Results)),'-d'),
+legend(string(POWER_array),'Location','SouthOutside'), pbaspect([1 1 1])
+ylabel('Total CC [million $]')
+set(gcf,'Color','w')
+set(findall(gcf,'-property','FontSize'),'FontSize',10)
+
+
+
 
 fprintf('Total run time = %.2f seconds.\n', toc(start_time));
 disp(' ')

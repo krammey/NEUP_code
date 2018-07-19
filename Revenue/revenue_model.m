@@ -1,6 +1,7 @@
 
-function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(TECH,object,T_DISCHARGE,POWER,ENERGY,MAIN_POWER,MIN_LOAD,~,life,interest,period,peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
-    
+function [netRevenue,CC,startCost,totalOM,totalCC] = revenue_model(TECH,object,...
+    T_DISCHARGE,POWER,ENERGY,MAIN_POWER,MIN_LOAD,life,interest,period,...
+    peakAmplitude,avgElecPrice,caseNumber, hotCyclesPerYear, warmCyclesPerYear, coldCyclesPerYear, var_om)   
     
     caseName = 'CASE' + string(caseNumber);
     Y   = 24*365/period;                           % storage cycles per year
@@ -75,7 +76,7 @@ function [netRevenue,CC,RC,RD,totalOM,totalCC] = revenue_model(TECH,object,T_DIS
     disp(['Total O&M is ' num2str(totalOM) ' MM$/year'])
     startCost  = cyclingCost*1000000/(POWER*(hotCyclesPerYear+warmCyclesPerYear+coldCyclesPerYear));
     disp(['Start cost is ' num2str(startCost) ' $/MW-start'])
-    RC         = ACP*c_t*Y*(MAIN_POWER-MIN_LOAD)/10^6;                % forgone revenue from charging
+    RC         = ACP*c_t*Y*(MAIN_POWER-MIN_LOAD)/10^6;             % forgone revenue from charging
     RD         = ADP*d_t*Y*POWER/10^6;                             % forgone revenue from discharging
     CC         = totalCC*(interest+(interest/((1+interest)^life-1))); % amortized capital cost
     netRevenue = RD-RC-CC-totalOM; % revenue provided by the addition of the accumulator
