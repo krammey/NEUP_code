@@ -123,10 +123,10 @@ for i=1:N_EVENTS
         ix = ix-2; % reset time step index after each event
     elseif  event(i) == 2  % charge
         for j=1:tsteps_per_event(i)
-            Th(ix) = Th(ix-1) + dt*( P_in*(T_HL-Th(ix-1))/(C_p*rho*Vh(ix-1)*(T_HL-Tc(ix-1))) - HXC*side_area*(Th(ix-1)-T_env)/(C_p*rho*Vh(ix-1)));
-            Tc(ix) = Tc(ix-1) - dt*( P_in*(T_HL-Th(ix-1))/(C_p*rho*Vh(ix-1)*(T_HL-Tc(ix-1))) + HXC*side_area*(Tc(ix-1)-T_env)/(C_p*rho*Vc(ix-1)));
-            Vh(ix) = Vh(ix-1) + dt*(P_in/(rho*C_p*(T_HL-Tc(ix-1))));
-            Vc(ix) = Vc(ix-1) - dt*(P_in/(rho*C_p*(T_HL-Tc(ix-1)))); 
+            Th(ix) = Th(ix-1) - dt*HXC*side_area*(Th(ix-1)-T_env)/(C_p*rho*Vh(ix-1)) + dt*P_in*(Th(ix-1)-T_HL)/(C_p*rho*Vh(ix-1)*(Tc(ix-1)-T_HL));
+            Tc(ix) = Tc(ix-1) - dt*HXC*side_area*(Tc(ix-1)-T_env)/(C_p*rho*Vc(ix-1)) - dt*P_in*(Th(ix-1)-T_HL)/(C_p*rho*Vh(ix-1)*(Tc(ix-1)-T_HL));
+            Vh(ix) = Vh(ix-1) - dt*P_in/(rho*C_p*(Tc(ix-1)-T_HL));
+            Vc(ix) = Vc(ix-1) + dt*P_in/(rho*C_p*(Tc(ix-1)-T_HL)); 
             ix     = ix+1;
         end %for int j
         ix = ix-2; % reset time step index after each event
