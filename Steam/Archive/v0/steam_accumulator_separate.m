@@ -271,7 +271,7 @@ classdef steam_accumulator_separate < handle
             %charge time for the SA is calculated with line 276, and charge time for the molten salt is calculated with line 277
             %comment/uncomment one of the charge time lines depending on which model is being used
             %length must be connected to capital cost through pipe and insulation costs
-            Y=(1/period)*24*365; %storage cycles per year
+            CyclesPerYear=(1/period)*24*365; %storage cycles per year
             d_t = object.discharge_time/3600; %hours, discharge time
             c_t = object.charge_time/3600; %hours, charge time for SA
             %c_t = (POWER_SA + 7.61232)/(POWER_SA-7.61232)*d_t; %hours, charge time for salt
@@ -347,15 +347,15 @@ classdef steam_accumulator_separate < handle
             n_Oe = scaleFactorDoubleArray(4); %scaleFactor cost (energy)
             
             %Cp Ce Op Oe scaled and assinged 
-            Cp_scaled = Cp * (POWER_SA/Pref)^n_Cp; %cost scaled (power)
+            Cp_scaled = Cp * (POWER_SA/Pref)^n_Cp;  %cost scaled (power)
             Ce_scaled = Ce * (ENERGY_SA/Eref)^n_Ce; %cost scaled (energy)
-            Op_scaled = Op * (POWER_SA/Pref)^n_Op; %OM scaled (power)
+            Op_scaled = Op * (POWER_SA/Pref)^n_Op;  %OM scaled (power)
             Oe_scaled = Oe * (ENERGY_SA/Eref)^n_Oe; %OM sclaed (energy)
          
             %cycles OM calcaulated 
             coldStart = startCostDoubleArray(1); %$/MW-Cycle
             warmStart = startCostDoubleArray(2); %$/MW-Cycle
-            hotStart = startCostDoubleArray(3); %$/MW-Cycle
+            hotStart = startCostDoubleArray(3);  %$/MW-Cycle
             cyclingCost = ((coldStart * coldCyclesPerYear + warmStart * warmCyclesPerYear + hotStart * hotCyclesPerYear) * POWER_SA)/1000000; %MM$/year
             
             %calculations to determine ADC, ACP, DP
@@ -372,19 +372,19 @@ classdef steam_accumulator_separate < handle
   
             %final costs/revenues caluclated and displayed 
             %These need to be updated to account for ramping.
-            RC=ACP*c_t*Y*(MAIN_POWER-MIN_LOAD)/10^6; %MM$/year, forgone revenue from charging
-            RD=ADP*d_t*Y*POWER_SA/10^6; %MM$/year, revenue from discharging
-            totalCC=Cp_scaled+Ce_scaled %Million $, total overnight capital cost
-                disp('   MM$')
+            RC=ACP*c_t*CyclesPerYear*(MAIN_POWER-MIN_LOAD)/10^6; %MM$/year, forgone revenue from charging
+            RD=ADP*d_t*CyclesPerYear*POWER_SA/10^6; %MM$/year, revenue from discharging
+            totalCC=Cp_scaled+Ce_scaled; %Million $, total overnight capital cost
+                disp(' MM$=totalCC')
             CC=totalCC*(interest+(interest/((1+interest)^life-1))); %MM$/year, amortized capital cost
-            fixed_om = (Oe_scaled+Op_scaled)*(10^6)*(1/POWER_SA)*(1/1000) %$/kw-year
-                disp('   $/kw-year')
-            totalOM = Op_scaled + Oe_scaled + cyclingCost + var_om *ENERGY_SA*Y/1000000 %MM$/year
-                disp('   MM$/year')
-            startCost = cyclingCost*1000000/(POWER_SA*(hotCyclesPerYear+warmCyclesPerYear+coldCyclesPerYear)) %$/MW-start
-                disp('   $/MW-start')
-            netRevenue=RD-RC-CC-totalOM %MM$/year, revenue provided by the addition of the accumulator
-                disp('   MM$/year')
+            fixed_om = (Oe_scaled+Op_scaled)*(10^6)*(1/POWER_SA)*(1/1000); %$/kw-year
+                disp('   $/kw-year = fixedOM')
+            totalOM = Op_scaled+Oe_scaled+cyclingCost+var_om *ENERGY_SA*CyclesPerYear/1000000; %MM$/year
+                disp('   MM$/year = totalOM')
+            startCost = cyclingCost*1000000/(POWER_SA*(hotCyclesPerYear+warmCyclesPerYear+coldCyclesPerYear)); %$/MW-start
+                disp('   $/MW-start = startCost')
+            netRevenue=RD-RC-CC-totalOM; %MM$/year, revenue provided by the addition of the accumulator
+                disp('   MM$/year = netRevenue')
                 disp(' ')
         end
         

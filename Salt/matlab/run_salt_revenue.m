@@ -33,14 +33,15 @@ warmCyclesPerYear   = 50;         % cycles/year
 hotCyclesPerYear    = 50;         % cycles/year
 var_om              = 8;          % $/MWh,          from Neal
 
+% Define power and storage time inputs
+POWER_array         = [50 100 150]; % array of powers to be tested
+T_MAX_array         = [1 2 3 4 5 6 7 8]; % array of storage times to be tested
 
-POWER_array = [50 100 150]; % array of powers to be tested
-T_MAX_array = [1 2 3 4 5 6 7 8]; % array of storage times to be tested
-J = length(T_MAX_array);
-Revenue_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
-CC_Results      = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
-TotalCC_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
-TotalOM_Results = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+% Initialize results arrays and counter
+Revenue_Results     = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+annualCC_Results    = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+TotalCC_Results     = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
+TotalOM_Results     = [POWER_array' zeros(length(POWER_array),length(T_MAX_array))];
 
 count = 0;
 for i = 1:length(POWER_array)
@@ -66,7 +67,7 @@ for i = 1:length(POWER_array)
         %------------------------------------------------------------------------
         addpath('../../Revenue/')
         disp(['Power = ' num2str(POWER) ' Hours = ' num2str(T_MAX)])
-        [netRevenue,CC,startCost,totalOM,totalCC] = revenue_model("salt",[],T_END,POWER,ENERGY,...
+        [netRevenue,annualCC,startCost,annualOM,totalCC,fixedOM] = revenue_model("salt",[],T_END,POWER,ENERGY,...
             MAIN_POWER,MIN_LOAD,life,interest,period,peakAmplitude,...
             avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
         disp(' ')
@@ -82,10 +83,11 @@ for i = 1:length(POWER_array)
         %------------------------------------------------------------------------
         % Save Results and convert units
         %------------------------------------------------------------------------
-        Revenue_Results(i,j+1) = netRevenue*1000/(POWER*ENERGY);
-        CC_Results(i,j+1)      = CC*1000/(POWER*ENERGY); % $/kWh(e)
-        TotalCC_Results(i,j+1) = totalCC*1000/(POWER*ENERGY); % $/kWh
-        TotalOM_Results(i,j+1) = totalOM*1000/(POWER*ENERGY); % $/kWh(e)
+        Revenue_Results(i,j+1)  = netRevenue*1000/(ENERGY);
+        annualCC_Results(i,j+1) = annualCC*1000/(ENERGY); % $/kWh(e)
+        TotalCC_Results(i,j+1)  = totalCC*1000/(ENERGY);  % $/kWh
+        TotalOM_Results(i,j+1)  = annualOM*1000/(ENERGY); % $/kWh(e)
+        fixedOM_Results(i,j+1)  = fixedOM; % $/kW-year
     end
 end
 
@@ -105,21 +107,24 @@ blue = "0 0.45 0.74";
 grey = "0.4 0.4 0.4";
 MARKERS = ["-d";"-s";"-o"];
 COLORS = [blue; red; grey];
-LABELS = ["Annual Net Revenue [million $]"; "Annual CC [million $]"; "Total O&M [million $]"; "Total CC [million $]"];
+% LABELS = ["Annual Net Revenue [million $]"; "Annual CC [million $]"; "Total O&M [million $]"; "Total CC [million $]"];
+LABELS = ["Annual Net Revenue [$/kWh_e]"; "Annual CC [$/kWh_e]"; "Total O&M [$/kWh_e]"; "Total CC [$/kWh_e]";"Fixed O&M [$/kW-year]"]; % new labels after converting units
 
-Results = zeros(size(Revenue_Results,1),size(Revenue_Results,2),0);
-Results(:,:,1)=Revenue_Results;
-Results(:,:,2)=CC_Results;
-Results(:,:,3)=TotalOM_Results;
-Results(:,:,4)=TotalCC_Results;
+% Re-organize results to be able to plot using for loop 
+Results        = zeros(size(Revenue_Results,1),size(Revenue_Results,2),0);
+Results(:,:,1) = Revenue_Results;
+Results(:,:,2) = annualCC_Results;
+Results(:,:,3) = TotalOM_Results;
+Results(:,:,4) = TotalCC_Results;
+Results(:,:,5) = fixedOM_Results;
 
 figure
-for r=1:4 % loop through results: 1-Revenue, 2-CC, 3-Total OM, 4-Total CC
-    subplot(1,5,r)
+for r=1:5 % loop through results: 1-Revenue, 2-CC, 3-Total OM, 4-Total CC
+    subplot(2,3,r)
     df = Results(:,:,r);
     hold on
     for idx = 1:length(POWER_array)
-        plot(categorical(T_MAX_array),df(idx,2:J+1),MARKERS(idx),'MarkerFaceColor',COLORS(idx),'Color',COLORS(idx))
+        plot(categorical(T_MAX_array),df(idx,2:length(T_MAX_array)+1),MARKERS(idx),'MarkerFaceColor',COLORS(idx),'Color',COLORS(idx))
     end
     ylabel(LABELS(r)), xlabel('Hours of storage')
     hold off
@@ -130,7 +135,6 @@ set(findall(gcf,'-property','FontSize'),'FontSize',10)
 set(findall(gcf,'-property','MarkerSize'),'MarkerSize',4)
 mtit(['Case Number = ' num2str(caseNumber)])
 
-export_fig(['Case' num2str(caseNumber) '.fig'])
-fprintf('Total run time = %.2f seconds.\n', toc(start_time));
+% export_fig(['Case' num2str(caseNumber) '.fig'])
 disp(' ')
 
