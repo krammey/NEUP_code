@@ -65,7 +65,7 @@ for i = 1:length(POWER_array)
         %------------------------------------------------------------------------
         % Run revenue_model.m
         %------------------------------------------------------------------------
-        addpath('../../Revenue/')
+        addpath('../Revenue/')
         disp(['Power = ' num2str(POWER) ' Hours = ' num2str(T_MAX)])
         [netRevenue,annualCC,startCost,annualOM,totalCC,fixedOM] = revenue_model("salt",[],T_END,POWER,ENERGY,...
             MAIN_POWER,MIN_LOAD,life,interest,period,peakAmplitude,...

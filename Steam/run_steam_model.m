@@ -1,12 +1,5 @@
 function [Revenue_Results,annualCC_Results,TotalOM_Results,TotalCC_Results,fixedOM_Results] = run_steam_model(caseNumber)
-% Run this script first
-% To test against old code versions run:
-% run ./v2/run_steam_model
-% run ./v1/RUN_SA_SEPARATE.m
-% run ./v0/RUN_SA_SEPARATE.m
-%===========================================================================================
-% clear all
-% close all
+
 start_time = tic;
 %===========================================================================================
 % Steam Accumulator properties
@@ -101,7 +94,7 @@ for i = 1:length(POWER_array)
         %------------------------------------------------------------------------
         % Run revenue_model.m
         %------------------------------------------------------------------------
-        addpath('../../Revenue/')
+        addpath('../Revenue/')
         disp(['Case Number = ' num2str(caseNumber) ' Power = ' num2str(POWER) ' Hours = ' num2str(T_MAX)])
         [netRevenue,annualCC,startCost,annualOM,totalCC,fixedOM] = revenue_model("steam",ACC,T_END,POWER,ENERGY,...
             MAIN_POWER,MIN_LOAD,life,interest,period,peakAmplitude,...
