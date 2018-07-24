@@ -6,7 +6,7 @@ T_range    = [350 550;...
 HXC_range  = [20, 35, 50];       % heat transfer coeff for natural circulation convective heat xfer to environment - W/m2/K
 SALT_range = ["Solar","Glauber", "Hitec XL"];
 
-[Th,Tc,Vh,Vc] = run_salt_tank(HXC_range(1),T_range(1,2),T_range(1,1),SALT_range(1));
+[Th,Tc,Vh,Vc] = run_salt_thermo(HXC_range(1),T_range(1,2),T_range(1,1),SALT_range(1));
 
 count = 1;
 LEGEND = ["Count","HXC","T_HL","T_CL","SALT"];

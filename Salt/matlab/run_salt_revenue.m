@@ -1,27 +1,13 @@
-function [Revenue_Results,CC_Results,TotalOM_Results,TotalCC_Results] = run_steam_model(caseNumber)
-% Run this script first
-% To test against old code versions run:
-% run ./v2/run_steam_model
-% run ./v1/RUN_SA_SEPARATE.m
-% run ./v0/RUN_SA_SEPARATE.m
+
+caseNumber = 3;
 %===========================================================================================
-% clear all
-% close all
-start_time = tic;
-%===========================================================================================
-% Steam Accumulator properties
+% Salt Tank properties
 %===========================================================================================
 % Parameter      |  Value                       | Units       | Description
 %----------------|------------------------------|-------------|-----------------------------
 D_RAMP_RATE         = 1.67;                     % percent/min,  discharge ramp rate (SA turbine, % of max power/min)
 POWER_INITIAL       = 0;                        % MW,           cold start
-T_STORE             = 10*3600;                  % s,            storage time (10 hours)
 DT                  = 10;  						% s,            time step
-RTANK               = 0.4064;                   % m,            pipe radius (16 inches)
-LTANK               = 100000.;                  % m,            pipe length
-VTANK               = LTANK.*pi.*RTANK^2.;  	% m3
-P0                  = 70; 						% bar,          initial pressure
-X0                  = 0.06;                     %               vapor quality (mass fraction)
 
 %===========================================================================================
 % Main plant properties
@@ -29,17 +15,8 @@ X0                  = 0.06;                     %               vapor quality (m
 % Parameter      |  Value                       | Units       | Description
 %----------------|------------------------------|-------------|-----------------------------
 MAIN_POWER          = 1300;                     % MWe,          power from main turbine of plant
-THERMAL_POWER       = 3500;                     % MWt,          from steam generator
-MDOTBASE            = 1333;                     % kg/s,         mass flow rate at main_power
 MIN_LEVEL           = 25;                       % percent,      minimum turbine level as percent of main power
 MIN_LOAD            = (MIN_LEVEL/100)*MAIN_POWER;% MWe
-p_topup             = 1;                        % bar,          low pressure makeup tank
-h_topup             = 206;                      % kJ/kg,        low pressure makeup tank
-sgh_output          = 2770;                     % kJ/kg,        outlet enthalpy at steam gen
-sgh_input           = sgh_output-(THERMAL_POWER*1000)/MDOTBASE; % kJ/kg, inlet enthalpy at steam gen
-Number              = 1;                        %               number of cycles
-POWER_REDUCTION     = MAIN_POWER-MIN_LOAD;
-MDOT_CHARGE         = MDOTBASE-(MIN_LEVEL/100)*MDOTBASE;% kg/s, maximum charging mass flow rate to produce min_load at base case values
 
 %===========================================================================================
 % Sinusoidal price curve, amortization values, and other economic info
@@ -56,21 +33,6 @@ warmCyclesPerYear   = 50;         % cycles/year
 hotCyclesPerYear    = 50;         % cycles/year
 var_om              = 8;          % $/MWh,          from Neal
 
-%------------------------------------------------------------------------
-% Set Case Number
-%------------------------------------------------------------------------
-% DESIGNS: divert main steam (MS);  preheat feedwater (FW)
-% POWER TRAIN: if Pdisch > 0.2Preactor, need additional power train (PT);
-% if not, can just upgrade exisitng (UG)
-% HEAT SINK: if diverting MS and Pchg > 0.5Preactor, need heat sink in
-% case of issue taking accumulator offline (HS); otherwise (NA)
-% case 1: MS, PT, HS
-% case 2: MS, UG, HS
-% case 3: MS, PT, NA
-% case 4: MS, UG, NA
-% case 5: FW, PT, NA
-% case 6: FW, PT, NA
-% caseNumber = 6;
 
 POWER_array = [50 100 150]; % array of powers to be tested
 T_MAX_array = [1 2 3 4 5 6 7 8]; % array of storage times to be tested
@@ -100,43 +62,40 @@ for i = 1:length(POWER_array)
         pow      = DT*t*((D_RAMP_RATE/100)*POWER)/60; % [MW] power as SA turbine is ramping up
         
         %------------------------------------------------------------------------
-        % Run steam_model.m (only either block 1 or block 2)
-        %------------------------------------------------------------------------
-        % Block 1 - Discharge cycle
-        discharge = 1; 										% turns discharge on
-        ACC = steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);
-        ACC.run_accumulator(POWER, pow, discharge); 		% runs discharge
-        ACC.charge(P0,X0,VTANK,MDOT_CHARGE,POWER_REDUCTION,POWER,p_topup,h_topup,sgh_input,sgh_output);
-        
-        % Block 2 - storage mode
-        % discharge = 0; % turns discharge off (store)
-        % acc=steam_model(T_END,T_STORE,T_RAMP,DT,VTANK,P0,X0,LTANK,RTANK,discharge);
-        % acc.run_accumulator(POWER_SA, pow, discharge);    % store
-        
-        %------------------------------------------------------------------------
         % Run revenue_model.m
         %------------------------------------------------------------------------
         addpath('../../Revenue/')
-        disp(['Case Number = ' num2str(caseNumber) ' Power = ' num2str(POWER) ' Hours = ' num2str(T_MAX)])
-        [netRevenue,CC,startCost,totalOM,totalCC] = revenue_model("steam",ACC,T_END,POWER,ENERGY,...
+        disp(['Power = ' num2str(POWER) ' Hours = ' num2str(T_MAX)])
+        [netRevenue,CC,startCost,totalOM,totalCC] = revenue_model("salt",[],T_END,POWER,ENERGY,...
             MAIN_POWER,MIN_LOAD,life,interest,period,peakAmplitude,...
             avgElecPrice,caseNumber,hotCyclesPerYear,warmCyclesPerYear,coldCyclesPerYear,var_om);
         disp(' ')
         
+        %         %------------------------------------------------------------------------
+        %         % Save Results
+        %         %------------------------------------------------------------------------
+        %         Revenue_Results(i,j+1) = netRevenue;
+        %         CC_Results(i,j+1)      = CC;
+        %         TotalCC_Results(i,j+1) = totalCC;
+        %         TotalOM_Results(i,j+1) = totalOM;
+        
         %------------------------------------------------------------------------
-        % Save Results
+        % Save Results and convert units
         %------------------------------------------------------------------------
-        Revenue_Results(i,j+1) = netRevenue;
-        CC_Results(i,j+1)      = CC;
-        TotalCC_Results(i,j+1) = totalCC;
-        TotalOM_Results(i,j+1) = totalOM;
+        Revenue_Results(i,j+1) = netRevenue*1000/(POWER*ENERGY);
+        CC_Results(i,j+1)      = CC*1000/(POWER*ENERGY); % $/kWh(e)
+        TotalCC_Results(i,j+1) = totalCC*1000/(POWER*ENERGY); % $/kWh
+        TotalOM_Results(i,j+1) = totalOM*1000/(POWER*ENERGY); % $/kWh(e)
     end
-    
 end
+
+
 
 % ------------------------------------------------------------------------
 % Plotting
 % ------------------------------------------------------------------------
+addpath('/Users/trins/Documents/MATLAB/mtit')
+addpath('/Users/trins/Documents/MATLAB/altmany-export_fig-9d97e2c')
 % COLORS
 % Blue: 0 0.45 0.74
 % grey = '0.4 0.4 0.4';
@@ -160,7 +119,7 @@ for r=1:4 % loop through results: 1-Revenue, 2-CC, 3-Total OM, 4-Total CC
     df = Results(:,:,r);
     hold on
     for idx = 1:length(POWER_array)
-        plot(categorical(T_MAX_array),df(idx,2:J+1),MARKERS(idx),'MarkerFaceColor',COLORS(idx))
+        plot(categorical(T_MAX_array),df(idx,2:J+1),MARKERS(idx),'MarkerFaceColor',COLORS(idx),'Color',COLORS(idx))
     end
     ylabel(LABELS(r)), xlabel('Hours of storage')
     hold off
@@ -174,7 +133,4 @@ mtit(['Case Number = ' num2str(caseNumber)])
 export_fig(['Case' num2str(caseNumber) '.fig'])
 fprintf('Total run time = %.2f seconds.\n', toc(start_time));
 disp(' ')
-
-end
-
 
