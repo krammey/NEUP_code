@@ -39,12 +39,13 @@
 % Results(:,:,5) = fixedOM_Final;
 % 
 % % Extract power array
-% POWER_array    = unique(Results(:,2,:));
-% P              = length(POWER_array);
+POWER_array    = unique(Results(:,2,:));
+P              = length(POWER_array);
+positions      = [1,2,4,5]; % subplot position numbers for when plotting only the first for results categories
 
 figure
-for r=1:5 % loop through results: 1-Revenue, 2-CC, 3-Total OM, 4-Total CC, 5-Fixed OM Results
-    subplot(2,3,r)
+for r=1:4 % loop through results: 1-Revenue, 2-CC, 3-Total OM, 4-Total CC, 5-Fixed OM Results
+    subplot(2,3,positions(r))
     data_temp = Results(:,:,r);
     hold on
     for idx = 1:P
@@ -56,7 +57,7 @@ for r=1:5 % loop through results: 1-Revenue, 2-CC, 3-Total OM, 4-Total CC, 5-Fix
     hold off
 end
 
-subplot(2,3,5)
+subplot(2,3,positions(r))
 hold on
 p1 = plot(0,'-','Color',COLORS(1));
 p2 = plot(0,'-','Color',COLORS(2));
