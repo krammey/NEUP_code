@@ -1,19 +1,23 @@
 
 
-T_range    = [350 550;...
-              375 525;...
-              400 500];          % [K] Sets of hot and cold temp ranges. Note temp diff is [200, 150, 100], centered around 450 K
-HXC_range  = [20, 35, 50];       % heat transfer coeff for natural circulation convective heat xfer to environment - W/m2/K
-SALT_range = ["Solar","Glauber", "Hitec XL"];
+T_range    = [350 550];%;...
+%               375 525;...
+%               400 500];          % [K] Sets of hot and cold temp ranges. Note temp diff is [200, 150, 100], centered around 450 K
+HXC_range  = 20;%, 35, 50];       % heat transfer coeff for natural circulation convective heat xfer to environment - W/m2/K
+SALT_range = "Solar";%,"Glauber", "Hitec XL"];
 
 [Th,Tc,Vh,Vc] = run_salt_thermo(HXC_range(1),T_range(1,2),T_range(1,1),SALT_range(1));
+Th = zeros(length(SALT_range)*length(HXC_range)*length(T_range),size(Th,2));
+Tc = zeros(length(SALT_range)*length(HXC_range)*length(T_range),size(Tc,2));
+Vh = zeros(length(SALT_range)*length(HXC_range)*length(T_range),size(Vh,2));
+Vc = zeros(length(SALT_range)*length(HXC_range)*length(T_range),size(Vc,2));
 
 count = 1;
 LEGEND = ["Count","HXC","T_HL","T_CL","SALT"];
 for k=1:length(SALT_range)
     for i = 1:length(HXC_range)       % i iterates through the heat transfer coefficients
-        for j=1:length(T_range)       % j iterates though the temperature ranges
-            [Th(count,:),Tc(count,:),Vh(count,:),Vc(count,:)] = run_salt_tank(HXC_range(i),T_range(j,2),T_range(j,1),SALT_range(k));
+        for j=1:size(T_range,1)       % j iterates though the temperature ranges
+            [Th(count,:),Tc(count,:),Vh(count,:),Vc(count,:)] = salt_tank_model(HXC_range(i),T_range(j,2),T_range(j,1),SALT_range(k));
             LEGEND(count+1,:) = [num2str(count),num2str(HXC_range(i)),num2str(T_range(j,2)),num2str(T_range(j,1)),SALT_range(k)];
             count = count+1;
         end
